@@ -1,0 +1,34 @@
+# Artefactos generados por Vivado (se regeneran solos al abrir/compilar
+# cada .xpr, no hace falta versionarlos)
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.gen/
+*.runs/
+.Xil/
+
+# Logs, journals y configs de ondas (especificos de cada maquina/corrida)
+*.jou
+*.log
+*.str
+*.wdb
+*.wcfg
+usage_statistics_webtalk.html
+usage_statistics_webtalk.xml
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Word deja un archivo de bloqueo mientras el documento esta abierto
+~$*
+
+# Salida de scripts/sim.sh y backups locales
+sim_out/
+*.bak_fase0
+*.zip
+
+# PDFs (enunciado, TEORICO/, TPs anteriores): no se suben al repo,
+# se pasan aparte. El informe .docx si se versiona.
+*.pdf

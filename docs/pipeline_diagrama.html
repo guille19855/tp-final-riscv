@@ -1,0 +1,513 @@
+<title>Pipeline RISC-V TP Final</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: hoja de datos técnica — encabezado sobrio, figura ancha con scroll propio, después secciones de lectura a 70ch */
+:root {
+  --bg: #f4f6f5;
+  --panel: #ffffff;
+  --band: #e9eeec;
+  --fg: #18211f;
+  --muted: #5a6964;
+  --rule: #d3dbd8;
+  --latch: #2d5c88;
+  --fwd: #c2410c;
+  --dbg: #0f7a70;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e;
+    --rule: #2b3633; --latch: #6fa6d8; --fwd: #f2894a; --dbg: #3cc4b4; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e;
+  --rule: #2b3633; --latch: #6fa6d8; --fwd: #f2894a; --dbg: #3cc4b4; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 48px; }
+header { display: grid; gap: 10px; max-width: 72ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 48px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0; }
+p { margin: 0; }
+.lead { font-size: 18px; color: var(--muted); }
+code, .m { font-family: var(--mono); font-size: .9em; }
+section { display: grid; gap: 18px; }
+section > p, section > .note { max-width: 72ch; }
+.status { display: inline-flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.status b { color: var(--fwd); font-weight: 600; }
+
+/* Figura */
+figure { margin: 0; display: grid; gap: 14px; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; }
+.dp { display: block; width: 100%; min-width: 1000px; height: auto; color: var(--fg); }
+.dp text { font-family: var(--mono); font-size: 11px; fill: currentColor; }
+.dp .hd { font-family: var(--display); font-size: 15px; font-weight: 700; }
+.dp .lh { font-family: var(--mono); font-size: 11px; font-weight: 600; fill: var(--latch); }
+.dp .bx { font-family: var(--body); font-size: 12.5px; font-weight: 600; }
+.dp .sm { font-size: 10px; fill: var(--muted); }
+.dp .wl { font-size: 10px; fill: var(--muted); }
+.dp .wlf { font-size: 10px; fill: var(--fwd); }
+.dp .wld { font-size: 10.5px; fill: var(--dbg); font-weight: 600; }
+.dp .band { fill: var(--band); }
+.dp .box { fill: var(--panel); stroke: currentColor; stroke-width: 1.3; }
+.dp .dbox { fill: var(--panel); stroke: var(--dbg); stroke-width: 1.5; }
+.dp .latch { fill: var(--latch); }
+.dp .w { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.dp .c { fill: none; stroke: var(--muted); stroke-width: 1.3; stroke-dasharray: 5 4; }
+.dp .f { fill: none; stroke: var(--fwd); stroke-width: 1.9; }
+.dp .d { fill: none; stroke: var(--dbg); stroke-width: 1.4; stroke-dasharray: 2 3; }
+.dp .dot { fill: currentColor; }
+.dp .dotf { fill: var(--fwd); }
+.dp .dotc { fill: var(--muted); }
+figcaption { font-size: 14px; color: var(--muted); max-width: 80ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px 26px; font-size: 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend svg { flex: none; }
+
+/* Tabla de etapas */
+.stages { display: grid; border-top: 1px solid var(--rule); }
+.stage { display: grid; grid-template-columns: 90px minmax(0, 1fr) minmax(0, 1fr); gap: 20px; padding-block: 18px; border-bottom: 1px solid var(--rule); }
+.stage .tag { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1; }
+.stage .tag small { display: block; font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 6px; letter-spacing: .04em; }
+.stage h4 { margin: 0 0 4px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.stage ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+.latchname { color: var(--latch); font-family: var(--mono); font-weight: 600; }
+@media (max-width: 760px) { .stage { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+
+/* Riesgos */
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td.cost { font-family: var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
+pre.ex { margin: 6px 0 0; font-family: var(--mono); font-size: 12.5px; color: var(--muted); white-space: pre; }
+
+/* Decisiones */
+.decisions { display: grid; gap: 14px; }
+.dec { display: grid; gap: 6px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+.dec .row { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.pill { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 1px solid currentColor; }
+.pill.ok { color: var(--dbg); }
+.pill.pend { color: var(--fwd); }
+.dec p { max-width: 80ch; }
+.dec .alt { color: var(--muted); font-size: 15px; }
+
+.qs { display: grid; gap: 12px; padding-left: 20px; margin: 0; max-width: 80ch; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">TP Final · Arquitectura de Computadoras 2026</span>
+  <h1>Pipeline RISC-V</h1>
+  <p class="lead">Diagrama del datapath para revisar juntos antes de escribir Verilog: cinco etapas, cuatro latches, dos BRAM de doble puerto y una Debug Unit que controla todo por UART.</p>
+  <span class="status">Versión 4 · contrastado con los apuntes de la cátedra · decisiones de diseño cerradas el 19/10 · BRAM de instrucciones direccionada con el PC</span>
+</header>
+
+<figure>
+  <div class="scroll">
+  <svg class="dp" viewBox="0 0 1350 830" role="img" aria-label="Datapath del pipeline RISC-V de 5 etapas: IF, ID, EX, MEM y WB separadas por los latches IF/ID, ID/EX, EX/MEM y MEM/WB; forwarding desde EX/MEM y MEM/WB hacia la ALU; saltos resueltos en EX con flush; y una Debug Unit conectada por UART que escribe la memoria de programa y lee registros, latches y memoria de datos.">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="arc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--muted)"/></marker>
+      <marker id="arf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--fwd)"/></marker>
+      <marker id="ard" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--dbg)"/></marker>
+    </defs>
+
+    <!-- bandas de etapas -->
+    <rect class="band" x="0" y="26" width="262" height="559"/>
+    <rect class="band" x="282" y="26" width="290" height="559"/>
+    <rect class="band" x="592" y="26" width="300" height="559"/>
+    <rect class="band" x="912" y="26" width="210" height="559"/>
+    <rect class="band" x="1142" y="26" width="208" height="559"/>
+
+    <!-- encabezados -->
+    <text class="hd" x="135" y="17" text-anchor="middle">IF</text>
+    <text class="hd" x="427" y="17" text-anchor="middle">ID</text>
+    <text class="hd" x="742" y="17" text-anchor="middle">EX</text>
+    <text class="hd" x="1017" y="17" text-anchor="middle">MEM</text>
+    <text class="hd" x="1246" y="17" text-anchor="middle">WB</text>
+    <text class="lh" x="272" y="17" text-anchor="middle">IF/ID</text>
+    <text class="lh" x="582" y="17" text-anchor="middle">ID/EX</text>
+    <text class="lh" x="902" y="17" text-anchor="middle">EX/MEM</text>
+    <text class="lh" x="1132" y="17" text-anchor="middle">MEM/WB</text>
+
+    <!-- latches -->
+    <rect class="latch" x="262" y="62" width="20" height="523"/>
+    <rect class="latch" x="572" y="62" width="20" height="523"/>
+    <rect class="latch" x="892" y="62" width="20" height="523"/>
+    <rect class="latch" x="1122" y="62" width="20" height="523"/>
+
+    <!-- ===== control: flush / PCSrc, stall, destino ===== -->
+    <path class="c" d="M868,95 L868,30 L45,30 L45,238" marker-end="url(#arc)"/>
+    <path class="c" d="M268,30 L268,62" marker-end="url(#arc)"/>
+    <path class="c" d="M578,30 L578,62" marker-end="url(#arc)"/>
+    <circle class="dotc" cx="268" cy="30" r="2.6"/><circle class="dotc" cx="578" cy="30" r="2.6"/>
+    <text class="wl" x="720" y="26" text-anchor="middle">PCSrc · flush</text>
+
+    <path class="w" d="M845,95 L845,40 L22,40 L22,250 L30,250" marker-end="url(#ar)"/>
+    <text class="wl" x="720" y="53" text-anchor="middle">destino del salto</text>
+
+    <path class="c" d="M512,92 L512,52 L105,52 L105,245" marker-end="url(#arc)"/>
+    <path class="c" d="M276,52 L276,62" marker-end="url(#arc)"/>
+    <circle class="dotc" cx="276" cy="52" r="2.6"/>
+    <text class="wl" x="440" y="48" text-anchor="middle">stall</text>
+
+    <!-- ===== IF ===== -->
+    <polygon class="box" points="30,232 60,244 60,296 30,308"/>
+    <rect class="box" x="80" y="245" width="50" height="50"/>
+    <text class="bx" x="105" y="274" text-anchor="middle">PC</text>
+    <polygon class="box" points="150,138 200,150 200,172 150,184 150,166 158,161 150,156"/>
+    <text class="sm" x="181" y="165" text-anchor="middle">Add</text>
+    <path class="w" d="M134,147 L150,147" marker-end="url(#ar)"/>
+    <text class="wl" x="128" y="151" text-anchor="end">4</text>
+    <rect class="box" x="150" y="320" width="95" height="100"/>
+    <text class="bx" x="197" y="356" text-anchor="middle">Mem. instr.</text>
+    <text class="sm" x="197" y="373" text-anchor="middle">BRAM</text>
+    <text class="sm" x="197" y="388" text-anchor="middle">puerto A</text>
+
+    <path class="w" d="M60,270 L80,270" marker-end="url(#ar)"/>
+    <path class="w" d="M140,270 L140,360 L150,360" marker-end="url(#ar)"/>
+    <circle class="dot" cx="140" cy="270" r="2.6"/>
+    <text class="wl" x="100" y="356" text-anchor="middle">addr = PC</text>
+    <path class="w" d="M130,270 L140,270 L140,190 L262,190" marker-end="url(#ar)"/>
+    <path class="w" d="M140,190 L140,170 L150,170" marker-end="url(#ar)"/>
+    <circle class="dot" cx="140" cy="190" r="2.6"/>
+    <text class="wl" x="232" y="185" text-anchor="middle">PC</text>
+    <path class="w" d="M200,160 L262,160" marker-end="url(#ar)"/>
+    <text class="wl" x="244" y="155" text-anchor="middle">PC+4</text>
+    <path class="w" d="M225,160 L225,95 L10,95 L10,295 L30,295" marker-end="url(#ar)"/>
+    <circle class="dot" cx="225" cy="160" r="2.6"/>
+    <path class="w" d="M245,360 L262,360" marker-end="url(#ar)"/>
+
+    <!-- ===== ID ===== -->
+    <rect class="box" x="310" y="70" width="90" height="50"/>
+    <text class="bx" x="355" y="92" text-anchor="middle">Control</text>
+    <text class="sm" x="355" y="108" text-anchor="middle">decoder · HALT</text>
+    <rect class="box" x="470" y="92" width="85" height="50"/>
+    <text class="bx" x="512" y="113" text-anchor="middle">Hazard</text>
+    <text class="sm" x="512" y="129" text-anchor="middle">load-use</text>
+    <rect class="box" x="330" y="220" width="120" height="170"/>
+    <text class="bx" x="390" y="292" text-anchor="middle">Registros</text>
+    <text class="sm" x="390" y="308" text-anchor="middle">32 × 32 bits</text>
+    <text class="sm" x="390" y="322" text-anchor="middle">flip-flops</text>
+    <rect class="box" x="330" y="445" width="120" height="50"/>
+    <text class="bx" x="390" y="466" text-anchor="middle">Imm Gen</text>
+    <text class="sm" x="390" y="482" text-anchor="middle">I · S · B · U · J</text>
+
+    <path class="w" d="M282,360 L300,360"/>
+    <path class="w" d="M300,110 L300,470"/>
+    <circle class="dot" cx="300" cy="360" r="2.6"/>
+    <path class="w" d="M300,110 L310,110" marker-end="url(#ar)"/>
+    <path class="w" d="M300,260 L330,260" marker-end="url(#ar)"/>
+    <path class="w" d="M300,470 L330,470" marker-end="url(#ar)"/>
+    <path class="w" d="M300,425 L572,425" marker-end="url(#ar)"/>
+    <circle class="dot" cx="300" cy="260" r="2.6"/><circle class="dot" cx="300" cy="425" r="2.6"/>
+    <text class="wl" x="515" y="420" text-anchor="middle">rd · funct3</text>
+    <path class="w" d="M400,78 L572,78" marker-end="url(#ar)"/>
+    <text class="wl" x="440" y="73" text-anchor="middle">control</text>
+    <path class="w" d="M450,240 L572,240" marker-end="url(#ar)"/>
+    <text class="wl" x="515" y="235" text-anchor="middle">dato rs1</text>
+    <path class="w" d="M450,325 L572,325" marker-end="url(#ar)"/>
+    <text class="wl" x="515" y="320" text-anchor="middle">dato rs2</text>
+    <path class="w" d="M450,470 L572,470" marker-end="url(#ar)"/>
+    <text class="wl" x="515" y="465" text-anchor="middle">inmediato</text>
+    <path class="w" d="M282,160 L572,160" marker-end="url(#ar)"/>
+    <path class="w" d="M282,190 L572,190" marker-end="url(#ar)"/>
+    <text class="wl" x="530" y="155" text-anchor="middle">PC+4</text>
+    <text class="wl" x="530" y="185" text-anchor="middle">PC</text>
+    <path class="c" d="M555,130 L572,130" marker-end="url(#arc)"/>
+
+    <!-- ===== EX ===== -->
+    <polygon class="box" points="620,225 645,235 645,290 620,300"/>
+    <polygon class="box" points="620,310 645,320 645,375 620,385"/>
+    <polygon class="box" points="665,330 690,340 690,385 665,395"/>
+    <polygon class="box" points="720,220 790,250 790,360 720,390 720,320 735,305 720,290"/>
+    <text class="bx" x="765" y="310" text-anchor="middle">ALU</text>
+    <polygon class="box" points="720,100 800,115 800,135 720,150 720,130 730,125 720,120"/>
+    <text class="bx" x="770" y="129" text-anchor="middle">Add</text>
+    <text class="sm" x="760" y="96" text-anchor="middle">PC + imm</text>
+    <rect class="box" x="812" y="95" width="66" height="55"/>
+    <text class="bx" x="845" y="116" text-anchor="middle">¿Salta?</text>
+    <text class="sm" x="845" y="130" text-anchor="middle">beq bne</text>
+    <text class="sm" x="845" y="143" text-anchor="middle">jal jalr</text>
+    <rect class="box" x="620" y="480" width="140" height="40"/>
+    <text class="bx" x="690" y="497" text-anchor="middle">Forwarding</text>
+    <text class="sm" x="690" y="512" text-anchor="middle">elige A · B</text>
+
+    <path class="w" d="M592,240 L620,240" marker-end="url(#ar)"/>
+    <path class="w" d="M592,325 L620,325" marker-end="url(#ar)"/>
+    <path class="w" d="M645,262 L720,262" marker-end="url(#ar)"/>
+    <path class="w" d="M645,347 L665,347" marker-end="url(#ar)"/>
+    <path class="w" d="M690,362 L720,362" marker-end="url(#ar)"/>
+    <path class="w" d="M650,347 L650,410 L892,410" marker-end="url(#ar)"/>
+    <circle class="dot" cx="650" cy="347" r="2.6"/>
+    <text class="wl" x="850" y="405" text-anchor="middle">dato store</text>
+    <path class="w" d="M592,470 L708,470 L708,118 L720,118" marker-end="url(#ar)"/>
+    <path class="w" d="M660,470 L660,380 L665,380" marker-end="url(#ar)"/>
+    <circle class="dot" cx="660" cy="470" r="2.6"/>
+    <path class="w" d="M592,190 L695,190 L695,135 L720,135" marker-end="url(#ar)"/>
+    <path class="w" d="M800,125 L812,125" marker-end="url(#ar)"/>
+    <path class="w" d="M790,262 L830,262 L830,150" marker-end="url(#ar)"/>
+    <text class="wl" x="836" y="215">zero</text>
+    <path class="w" d="M790,305 L892,305" marker-end="url(#ar)"/>
+    <text class="wl" x="848" y="300" text-anchor="middle">alu_result</text>
+    <path class="w" d="M592,78 L892,78" marker-end="url(#ar)"/>
+    <path class="w" d="M592,160 L892,160" marker-end="url(#ar)"/>
+    <path class="w" d="M592,425 L892,425" marker-end="url(#ar)"/>
+    <path class="c" d="M632,480 L632,385" marker-end="url(#arc)"/>
+
+    <!-- forwarding -->
+    <path class="f" d="M918,305 L918,545 L612,545 L612,265 L620,265" marker-end="url(#arf)"/>
+    <path class="f" d="M612,350 L620,350" marker-end="url(#arf)"/>
+    <circle class="dotf" cx="918" cy="305" r="3"/><circle class="dotf" cx="612" cy="350" r="3"/>
+    <text class="wlf" x="800" y="540" text-anchor="middle">forward desde EX/MEM</text>
+    <path class="f" d="M1325,565 L606,565 L606,288 L620,288" marker-end="url(#arf)"/>
+    <path class="f" d="M606,373 L620,373" marker-end="url(#arf)"/>
+    <circle class="dotf" cx="1325" cy="565" r="3"/><circle class="dotf" cx="606" cy="373" r="3"/>
+    <text class="wlf" x="800" y="560" text-anchor="middle">forward desde MEM/WB</text>
+
+    <!-- ===== MEM ===== -->
+    <rect class="box" x="960" y="260" width="120" height="120"/>
+    <text class="bx" x="1020" y="298" text-anchor="middle">Mem. datos</text>
+    <text class="sm" x="1020" y="315" text-anchor="middle">BRAM</text>
+    <text class="sm" x="1020" y="330" text-anchor="middle">puerto A</text>
+    <text class="sm" x="1020" y="345" text-anchor="middle">byte enable</text>
+
+    <path class="w" d="M912,78 L1122,78" marker-end="url(#ar)"/>
+    <path class="w" d="M912,160 L1122,160" marker-end="url(#ar)"/>
+    <path class="w" d="M912,305 L960,305" marker-end="url(#ar)"/>
+    <circle class="dot" cx="930" cy="305" r="2.6"/>
+    <path class="w" d="M930,305 L930,200 L1122,200" marker-end="url(#ar)"/>
+    <text class="wl" x="1062" y="195" text-anchor="middle">alu_result</text>
+    <path class="w" d="M912,410 L940,410 L940,345 L960,345" marker-end="url(#ar)"/>
+    <path class="w" d="M912,425 L1122,425" marker-end="url(#ar)"/>
+    <path class="w" d="M1080,290 L1122,290" marker-end="url(#ar)"/>
+    <text class="wl" x="1100" y="284" text-anchor="middle">dato</text>
+
+    <!-- ===== WB ===== -->
+    <rect class="box" x="1165" y="268" width="80" height="44"/>
+    <text class="bx" x="1205" y="287" text-anchor="middle">Extensión</text>
+    <text class="sm" x="1205" y="302" text-anchor="middle">signo / cero</text>
+    <polygon class="box" points="1280,185 1305,197 1305,333 1280,345"/>
+
+    <path class="w" d="M1142,78 L1292,78 L1292,189" marker-end="url(#ar)"/>
+    <text class="wl" x="1215" y="73" text-anchor="middle">control</text>
+    <path class="w" d="M1142,200 L1280,200" marker-end="url(#ar)"/>
+    <path class="w" d="M1142,290 L1165,290" marker-end="url(#ar)"/>
+    <path class="w" d="M1245,290 L1280,290" marker-end="url(#ar)"/>
+    <path class="w" d="M1142,160 L1265,160 L1265,330 L1280,330" marker-end="url(#ar)"/>
+    <text class="wl" x="1200" y="155" text-anchor="middle">PC+4</text>
+    <text class="wl" x="1200" y="195" text-anchor="middle">alu_result</text>
+    <path class="w" d="M1142,425 L1325,425"/>
+    <circle class="dot" cx="1325" cy="425" r="2.6"/>
+    <text class="wl" x="1200" y="420" text-anchor="middle">rd</text>
+    <path class="w" d="M1305,265 L1325,265 L1325,600 L318,600 L318,370 L330,370" marker-end="url(#ar)"/>
+    <text class="wl" x="700" y="614" text-anchor="middle">escritura en el banco de registros: rd + dato (WB)</text>
+
+    <!-- ===== Debug Unit ===== -->
+    <path class="d" d="M225,650 L225,420" marker-end="url(#ard)"/>
+    <path class="d" d="M272,585 L272,650" marker-end="url(#ard)"/>
+    <path class="d" d="M450,385 L462,385 L462,650" marker-end="url(#ard)"/>
+    <path class="d" d="M582,585 L582,650" marker-end="url(#ard)"/>
+    <path class="d" d="M902,585 L902,650" marker-end="url(#ard)"/>
+    <path class="d" d="M1020,380 L1020,650" marker-end="url(#ard)"/>
+    <path class="d" d="M1132,585 L1132,650" marker-end="url(#ard)"/>
+    <path class="d" d="M1292,345 L1292,650" marker-end="url(#ard)"/>
+
+    <rect class="dbox" x="210" y="650" width="1130" height="145" rx="4"/>
+    <text class="wld" x="225" y="668" text-anchor="middle">prog</text>
+    <text class="wld" x="272" y="680" text-anchor="middle">IF/ID</text>
+    <text class="wld" x="462" y="668" text-anchor="middle">regs</text>
+    <text class="wld" x="582" y="668" text-anchor="middle">ID/EX</text>
+    <text class="wld" x="902" y="668" text-anchor="middle">EX/MEM</text>
+    <text class="wld" x="1020" y="668" text-anchor="middle">datos</text>
+    <text class="wld" x="1132" y="668" text-anchor="middle">MEM/WB</text>
+    <text class="wld" x="1292" y="668" text-anchor="middle">halt</text>
+    <text class="bx" x="775" y="712" text-anchor="middle">Debug Unit · FSM de comandos</text>
+    <text x="775" y="736" text-anchor="middle">LOAD escribe el programa por el puerto B · RUN · STEP · DUMP · RESET</text>
+    <text x="775" y="757" text-anchor="middle">cpu_en → PC, latches, enable de las BRAM y escrituras: congela el pipeline sin tocar el clock</text>
+    <text class="sm" x="775" y="779" text-anchor="middle">DUMP envía: 32 registros + 4 latches + memoria de datos usada</text>
+
+    <rect class="box" x="20" y="690" width="150" height="75" rx="4"/>
+    <text class="bx" x="95" y="714" text-anchor="middle">UART</text>
+    <text class="sm" x="95" y="731" text-anchor="middle">RX · TX · baud gen</text>
+    <text class="sm" x="95" y="747" text-anchor="middle">reutilizada del TP2</text>
+    <path class="w" d="M170,720 L210,720" marker-end="url(#ar)"/>
+    <path class="w" d="M210,738 L170,738" marker-end="url(#ar)"/>
+    <path class="w" d="M95,765 L95,800" marker-start="url(#ar)" marker-end="url(#ar)"/>
+    <text class="bx" x="95" y="820" text-anchor="middle">PC · Python</text>
+  </svg>
+  </div>
+  <div class="legend" aria-label="Referencias">
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--fg); stroke-width: 1.6"/></svg>dato que avanza</span>
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4"/></svg>control: stall, flush, selección de mux</span>
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--fwd); stroke-width: 2"/></svg>forwarding</span>
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--dbg); stroke-width: 1.6; stroke-dasharray: 2 3"/></svg>Debug Unit (lee o escribe)</span>
+    <span><svg width="14" height="14" aria-hidden="true"><rect width="14" height="14" style="fill: var(--latch)"/></svg>latch entre etapas</span>
+  </div>
+  <figcaption>Igual que en el teórico (Processor, diapositivas 31 y 33), hay una sola ALU y dos sumadores (Add): PC + 4 en IF y el destino del salto PC + imm en EX. El sumador de EX existe porque, en un beq, la ALU está ocupada comparando en ese mismo ciclo (riesgo estructural). Cada instrucción entra por la izquierda y avanza una etapa por ciclo. Las líneas que vuelven hacia la izquierda son el problema central del pipeline: el destino de un salto, el dato que se escribe en WB y los forwards llevan información a una instrucción que entró después.</figcaption>
+</figure>
+
+<section>
+  <h2>Qué pasa en cada etapa</h2>
+  <p>Después de cada etapa, todo lo que la instrucción todavía va a necesitar se guarda en el latch siguiente. Por eso <span class="m">PC+4</span> viaja hasta WB: lo usan <span class="m">jal</span> y <span class="m">jalr</span> para guardar la dirección de retorno, tres etapas después de que se calculó.</p>
+  <div class="stages">
+    <div class="stage">
+      <div class="tag">IF<small>FETCH</small></div>
+      <div><h4>Qué hace</h4><ul>
+        <li>Un mux elige el próximo PC: <span class="m">PC+4</span> o el destino de un salto que viene de EX.</li>
+        <li>La BRAM de instrucciones se lee con el PC. Su lectura es sincrónica: el dato sale en el flanco siguiente, el mismo en que el latch IF/ID guarda ese PC. Por eso el registro de salida de la BRAM funciona como el campo <span class="m">instr</span> del latch IF/ID.</li>
+      </ul></div>
+      <div><h4>Guarda en <span class="latchname">IF/ID</span></h4><ul>
+        <li><span class="m">PC</span>, <span class="m">PC+4</span></li>
+        <li><span class="m">instr</span>: es el registro interno de salida de la BRAM</li>
+        <li><span class="m">válido</span>: en 0 cuando se hace flush, y entonces ID ve un NOP</li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="tag">ID<small>DECODE</small></div>
+      <div><h4>Qué hace</h4><ul>
+        <li>La unidad de control mira <span class="m">opcode</span>, <span class="m">funct3</span> y <span class="m">funct7</span> y genera las señales de control.</li>
+        <li>Lee <span class="m">rs1</span> y <span class="m">rs2</span> del banco de registros (<span class="m">x0</span> siempre vale 0).</li>
+        <li>Imm Gen arma el inmediato de 32 bits según el formato: I, S, B, U o J.</li>
+        <li>La unidad de hazard detecta el caso load-use y frena.</li>
+        <li>Detecta HALT.</li>
+      </ul></div>
+      <div><h4>Guarda en <span class="latchname">ID/EX</span></h4><ul>
+        <li>señales de control</li>
+        <li><span class="m">PC</span>, <span class="m">PC+4</span></li>
+        <li>dato rs1, dato rs2, inmediato</li>
+        <li>números <span class="m">rs1</span>, <span class="m">rs2</span> (los usa el forwarding), <span class="m">rd</span>, <span class="m">funct3</span></li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="tag">EX<small>EXECUTE</small></div>
+      <div><h4>Qué hace</h4><ul>
+        <li>Los muxes de forwarding eligen el operando correcto: el del banco o uno más nuevo que todavía no llegó a WB.</li>
+        <li>La ALU hace las 10 operaciones: add, sub, sll, srl, sra, and, or, xor, slt, sltu. Para <span class="m">lui</span> solo deja pasar el inmediato.</li>
+        <li>Para beq/bne la ALU resta y mira <span class="m">zero</span>. El destino es <span class="m">PC+imm</span>, o <span class="m">(rs1+imm) &amp; ~1</span> en jalr.</li>
+        <li>Decide si salta. Si salta, cambia el PC y hace flush de IF/ID e ID/EX.</li>
+      </ul></div>
+      <div><h4>Guarda en <span class="latchname">EX/MEM</span></h4><ul>
+        <li>señales de control</li>
+        <li><span class="m">PC+4</span>, <span class="m">alu_result</span> (es la dirección en loads y stores)</li>
+        <li>dato a guardar (rs2 ya con forwarding)</li>
+        <li><span class="m">rd</span>, <span class="m">funct3</span></li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="tag">MEM<small>MEMORY</small></div>
+      <div><h4>Qué hace</h4><ul>
+        <li>Loads: lee la BRAM de datos en la dirección <span class="m">alu_result</span>.</li>
+        <li>Stores: escribe con <em>byte enable</em>. <span class="m">sb</span> habilita 1 de los 4 bytes, <span class="m">sh</span> 2 y <span class="m">sw</span> los 4.</li>
+        <li>Si la instrucción no usa la memoria, solo deja pasar el resultado.</li>
+      </ul></div>
+      <div><h4>Guarda en <span class="latchname">MEM/WB</span></h4><ul>
+        <li>señales de control</li>
+        <li><span class="m">PC+4</span>, <span class="m">alu_result</span></li>
+        <li>dato leído: es el registro interno de la BRAM</li>
+        <li><span class="m">rd</span>, <span class="m">funct3</span>, los 2 bits bajos de la dirección</li>
+      </ul></div>
+    </div>
+    <div class="stage">
+      <div class="tag">WB<small>WRITE BACK</small></div>
+      <div><h4>Qué hace</h4><ul>
+        <li>Extensión: de la palabra leída toma el byte o media palabra que pidió la instrucción y extiende el signo (lb, lh) o rellena con ceros (lbu, lhu).</li>
+        <li>Un mux elige qué se escribe: el resultado de la ALU, el dato de memoria o <span class="m">PC+4</span> (jal, jalr).</li>
+        <li>Escribe en <span class="m">rd</span>, salvo que <span class="m">rd</span> sea <span class="m">x0</span>.</li>
+      </ul></div>
+      <div><h4>Avisa</h4><ul>
+        <li>Cuando el HALT llega acá, todas las instrucciones anteriores ya terminaron y el pipeline está vacío. Recién entonces la Debug Unit da la ejecución por terminada.</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Riesgos y cómo se resuelven</h2>
+  <p>El enunciado nombra tres tipos de riesgo. En la tabla está cada uno con un ejemplo, la solución de este diseño y cuántos ciclos cuesta.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Riesgo</th><th>Ejemplo</th><th>Solución</th><th>Costo</th></tr></thead>
+    <tbody>
+      <tr><td><b>Estructural</b><br>dos etapas usan el mismo recurso</td>
+          <td>IF lee una instrucción mientras MEM lee un dato. WB escribe un registro mientras ID lee otro.</td>
+          <td>Memorias de instrucciones y de datos separadas (Harvard). El banco de registros tiene bypass interno: si WB escribe el mismo registro que ID está leyendo, ID recibe el valor nuevo.</td>
+          <td class="cost">0 ciclos</td></tr>
+      <tr><td><b>De datos</b><br>ALU → ALU</td>
+          <td><pre class="ex">add x1, x2, x3
+sub x4, x1, x5</pre></td>
+          <td>Forwarding: el <span class="m">x1</span> nuevo se toma de EX/MEM (o de MEM/WB si está dos instrucciones atrás), sin esperar a que se escriba en el banco.</td>
+          <td class="cost">0 ciclos</td></tr>
+      <tr><td><b>De datos</b><br>load-use</td>
+          <td><pre class="ex">lw  x1, 0(x2)
+add x3, x1, x4</pre></td>
+          <td>El dato del <span class="m">lw</span> recién existe al final de MEM y no se puede adelantar a tiempo. La unidad de hazard congela el PC y el IF/ID un ciclo, mete una burbuja en ID/EX y después el forwarding desde MEM/WB entrega el dato.</td>
+          <td class="cost">1 ciclo</td></tr>
+      <tr><td><b>De control</b><br>saltos</td>
+          <td><pre class="ex">beq x1, x2, fin
+addi ...   # ¿se ejecuta?</pre></td>
+          <td>Se supone que no salta y se siguen buscando instrucciones. El salto se decide en EX. Si salta, las dos instrucciones que entraron después se anulan con flush de IF/ID e ID/EX.</td>
+          <td class="cost">2 ciclos si salta<br>0 si no</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Decisiones de diseño</h2>
+  <p>El enunciado pide documentar cada decisión y su porqué. Esta lista es el comienzo de esa documentación.</p>
+  <div class="decisions">
+    <div class="dec">
+      <div class="row"><h3>Memorias en BRAM, con el IP Block Memory Generator en modo True Dual Port</h3><span class="pill ok">decidido</span></div>
+      <p>El puerto A lo usa el procesador. El puerto B lo usa la Debug Unit: escribe el programa que llega por UART y lee la memoria de datos para mandarla a la PC. Así el programa se carga sin resintetizar y sin pelear el acceso con el procesador.</p>
+      <p class="alt">Descartado: memoria con lectura asincrónica en LUTs. Es más simple de temporizar, pero no usa los bloques de memoria dedicados de la FPGA.</p>
+    </div>
+    <div class="dec">
+      <div class="row"><h3>Congelar el procesador con un enable, nunca tocando el clock</h3><span class="pill ok">requisito</span></div>
+      <p>Una señal <span class="m">cpu_en</span> de la Debug Unit habilita el PC, los 4 latches, las escrituras y el enable de las BRAM. En modo paso a paso, <span class="m">cpu_en</span> vale 1 durante un solo ciclo. El clock llega siempre igual a todos los flip-flops, que es lo que pide el enunciado.</p>
+      <p class="alt">Descartado: compuerta AND sobre el clock (clock gating). Genera skew y glitches, y el enunciado lo prohíbe.</p>
+    </div>
+    <div class="dec">
+      <div class="row"><h3>Banco de registros en flip-flops, con bypass interno</h3><span class="pill ok">decidido</span></div>
+      <p>Hace falta leer rs1 y rs2 en el mismo ciclo, escribir rd y además dejar que la Debug Unit lea los 32 registros. Una BRAM no da tantos puertos.</p>
+      <p class="alt">Alternativa de la cátedra (Apuntes, Fig. 39): escribir en el flanco de bajada y leer en el de subida, "medio ciclo para cada cosa". Funciona igual, pero el camino de escritura dispone solo de medio período, y eso puede bajar la frecuencia máxima. El bypass logra el mismo efecto con un solo flanco.</p>
+    </div>
+    <div class="dec">
+      <div class="row"><h3>Los saltos se resuelven en EX (primera versión)</h3><span class="pill ok">decidido · después pasa a ID</span></div>
+      <p>En EX ya están la ALU, el forwarding y los operandos correctos, así que decidir el salto ahí no agrega hardware nuevo. El costo es perder 2 ciclos cada vez que salta.</p>
+      <p class="alt">Alternativa de la cátedra (Apuntes, Opción II; diapositivas 52 y 55): poner un comparador y un sumador en ID. Pierde 1 solo ciclo, pero necesita forwarding hacia ID y stalls extra: 1 ciclo si el salto depende de la instrucción anterior y 2 si depende de un load. Se puede empezar en EX y pasar a ID como mejora.</p>
+    </div>
+    <div class="dec">
+      <div class="row"><h3>HALT = <span class="m">ebreak</span>, se detecta en ID y se deja vaciar el pipeline</h3><span class="pill ok">decidido</span></div>
+      <p>En el ensamblador se escribe <span class="m">halt</span> y se traduce a <span class="m">ebreak</span> (<span class="m">0x00100073</span>, opcode <span class="m">1110011</span>), la instrucción estándar de RISC-V para frenar ante un debugger. Cuando ID ve un HALT, deja de buscar instrucciones nuevas: el PC queda congelado y a IF/ID entran NOPs. Las instrucciones que ya estaban adentro terminan normalmente. Cuando el HALT llega a WB, el pipeline está vacío, que es lo que pide el enunciado.</p>
+      <p class="alt">Tiene que ser explícito, porque la memoria no se vacía entre programas (lo dijo el profesor) y detrás de un programa corto quedan restos del anterior. El ensamblador lo agrega siempre al final.</p>
+    </div>
+    <div class="dec">
+      <div class="row"><h3>Memorias de 1024 palabras de 32 bits</h3><span class="pill ok">decidido</span></div>
+      <p>Cada memoria ocupa exactamente un bloque BRAM36 (1024 × 36 bits) de los 50 que tiene la Artix-7. La memoria de datos arranca con la secuencia 0, 1, 2… cargada desde un archivo <span class="m">.coe</span>, como sugirió el profesor. Así un <span class="m">lw</span> sin <span class="m">sw</span> previo devuelve un valor conocido.</p>
+      <p class="alt">La Debug Unit manda solo la parte usada de la memoria de datos, no los 4 KB, y la UART pasa a 115200 baudios para que el modo paso a paso responda rápido.</p>
+    </div>
+  </div>
+</section>
+
+<section hidden>
+  <h2>Para decidir juntos</h2>
+  <ol class="qs">
+    <li><b>¿Saltos en EX o en ID?</b> La cátedra enseña la versión en ID, con 1 ciclo de penalidad. Mi recomendación: arrancar en EX, que es más simple de verificar, y pasar a ID como mejora documentada. Esa mejora también es buen material para la presentación.</li>
+    <li><b>¿Banco de registros con bypass o con escritura en flanco de bajada?</b> Las dos opciones resuelven el mismo riesgo estructural. La de flanco de bajada es la de los apuntes; la de bypass no parte el ciclo en dos.</li>
+    <li><b>¿Qué instrucción es HALT?</b> RISC-V no tiene un "halt" propio, así que la elegimos nosotros. Opciones: usar <span class="m">ebreak</span> (que existe en el estándar) o un código propio como <span class="m">0xFFFFFFFF</span>. Además, conviene tratar <span class="m">0x00000000</span> como HALT: la memoria arranca en cero, así que un programa sin HALT se frena solo al llegar a la memoria vacía. Eso ayuda a responder la pregunta del enunciado.</li>
+    <li><b>Tamaño de las memorias.</b> Propongo 1024 palabras de 32 bits (4 KB) cada una. Un bloque BRAM36 de la Artix-7 tiene exactamente 1024 × 36 bits, así que cada memoria ocupa 1 bloque de los 50 que tiene la placa.</li>
+  </ol>
+</section>
+
+</div>

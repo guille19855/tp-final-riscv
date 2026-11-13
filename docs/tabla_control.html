@@ -1,0 +1,347 @@
+<title>Tabla de control RISC-V</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: misma hoja técnica que el diagrama — tabla principal ancha con scroll propio, después las tablas de detalle y las preguntas a 72ch */
+:root {
+  --bg: #f4f6f5;
+  --panel: #ffffff;
+  --band: #e9eeec;
+  --fg: #18211f;
+  --muted: #5a6964;
+  --rule: #d3dbd8;
+  --latch: #2d5c88;
+  --one: #2d5c88;
+  --on-one: #ffffff;
+  --ex: #e3ecf6;
+  --mem: #e6f2ee;
+  --wb: #f6ecdf;
+  --idc: #eeeaf5;
+  --warn: #c2410c;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e; --rule: #2b3633;
+    --latch: #6fa6d8; --one: #6fa6d8; --on-one: #0e1a26; --ex: #1a2735; --mem: #182b25; --wb: #2c2418; --idc: #241f2e; --warn: #f2894a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e; --rule: #2b3633;
+  --latch: #6fa6d8; --one: #6fa6d8; --on-one: #0e1a26; --ex: #1a2735; --mem: #182b25; --wb: #2c2418; --idc: #241f2e; --warn: #f2894a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 48px; }
+header { display: grid; gap: 10px; max-width: 74ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 46px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { font-size: 18px; color: var(--muted); }
+.m, code { font-family: var(--mono); font-size: .88em; }
+section { display: grid; gap: 16px; }
+section > p, section > ul, section > ol { max-width: 74ch; }
+ul, ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+
+.tbl { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .04em; font-weight: 600; color: var(--muted); }
+tbody tr:last-child td { border-bottom: 0; }
+td.m, th.m { font-family: var(--mono); font-size: 13px; }
+
+/* tabla principal */
+table.main { min-width: 1080px; }
+table.main th, table.main td { text-align: center; white-space: nowrap; }
+table.main th:first-child, table.main td:first-child, table.main td:nth-child(2) { text-align: left; }
+table.main thead tr.stage th { font-family: var(--body); font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--fg); font-weight: 600; border-bottom: 0; padding-bottom: 2px; }
+.cx { background: var(--ex); } .cm { background: var(--mem); } .cw { background: var(--wb); } .ci { background: var(--idc); }
+td .one { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 3px; background: var(--one); color: var(--on-one); font-family: var(--mono); font-weight: 600; font-size: 12.5px; }
+td .zero { font-family: var(--mono); color: var(--muted); font-size: 12.5px; }
+td .val { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }
+td .dc { color: var(--muted); font-family: var(--mono); }
+td.ins { font-family: var(--mono); font-size: 12.5px; color: var(--muted); white-space: normal; min-width: 190px; text-align: left; }
+.fam { font-weight: 600; }
+.fam small { display: block; font-family: var(--mono); font-weight: 400; font-size: 11.5px; color: var(--muted); }
+
+.key { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--muted); }
+.key span { display: inline-flex; gap: 8px; align-items: center; }
+.sw { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+.callout { border-left: 4px solid var(--warn); background: var(--panel); padding: 14px 18px; border-radius: 0 6px 6px 0; display: grid; gap: 8px; max-width: 80ch; }
+.callout b.t { font-family: var(--display); font-size: 18px; }
+pre.code { margin: 0; background: var(--band); border-radius: 4px; padding: 10px 12px; font-family: var(--mono); font-size: 13px; overflow-x: auto; }
+ol.qs b { display: block; }
+.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 22px; }
+.grid2 > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.grid2 h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 19px; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: minmax(0,1fr); } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">TP Final · Fase 2 · etapa ID · borrador para revisar</span>
+  <h1>Tabla de señales de control</h1>
+  <p class="lead">Qué señales genera la unidad de control para cada instrucción. La unidad de control mira solo el opcode, así que alcanza con una fila por familia: las 37 instrucciones caben en 9 filas. Las señales viajan por los latches hasta la etapa que las usa.</p>
+</header>
+
+<section>
+  <h2>Las señales</h2>
+  <p>Cada señal la usa una sola etapa. El color de la columna en la tabla principal indica cuál.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Señal</th><th>Bits</th><th>Valores</th><th>La usa</th><th>Pregunta que responde</th></tr></thead>
+    <tbody>
+      <tr><td class="m">ALUSrcA</td><td class="m">1</td><td class="m">0 = rs1 · 1 = cero</td><td>EX</td><td>¿El primer operando de la ALU es rs1 o 0? Solo <span class="m">lui</span> usa 0.</td></tr>
+      <tr><td class="m">ALUSrcB</td><td class="m">1</td><td class="m">0 = rs2 · 1 = inmediato</td><td>EX</td><td>¿El segundo operando es un registro o el inmediato?</td></tr>
+      <tr><td class="m">ALUOp</td><td class="m">2</td><td class="m">00 suma · 01 resta · 10 tipo R · 11 tipo I</td><td>EX</td><td>¿Qué tipo de operación? El control de la ALU la termina de decidir con funct3 y funct7.</td></tr>
+      <tr><td class="m">Branch</td><td class="m">1</td><td class="m">1 = beq/bne</td><td>EX</td><td>¿Es un salto condicional? Si salta o no lo decide <span class="m">zero</span> con funct3.</td></tr>
+      <tr><td class="m">Jal</td><td class="m">1</td><td class="m">1 = jal</td><td>EX</td><td>¿Salto incondicional a PC + imm?</td></tr>
+      <tr><td class="m">Jalr</td><td class="m">1</td><td class="m">1 = jalr</td><td>EX</td><td>¿Salto incondicional a (rs1 + imm) &amp; ~1?</td></tr>
+      <tr><td class="m">MemRead</td><td class="m">1</td><td class="m">1 = load</td><td>MEM (y hazard en ID)</td><td>¿Lee la memoria de datos? La unidad de hazard la usa para detectar el load-use.</td></tr>
+      <tr><td class="m">MemWrite</td><td class="m">1</td><td class="m">1 = store</td><td>MEM</td><td>¿Escribe la memoria de datos?</td></tr>
+      <tr><td class="m">RegWrite</td><td class="m">1</td><td class="m">1 = escribe rd</td><td>WB</td><td>¿Escribe un registro?</td></tr>
+      <tr><td class="m">WBSel</td><td class="m">2</td><td class="m">00 ALU · 01 memoria · 10 PC+4</td><td>WB</td><td>¿Qué valor se escribe en rd?</td></tr>
+      <tr><td class="m">Halt</td><td class="m">1</td><td class="m">1 = ebreak</td><td>ID (frena IF) y WB (fin)</td><td>¿Es la instrucción de parada? Viaja hasta WB para saber cuándo el pipeline quedó vacío.</td></tr>
+      <tr><td class="m">ImmSel</td><td class="m">3</td><td class="m">I · S · B · U · J</td><td>ID (Imm Gen)</td><td>¿Cómo se arma el inmediato con los bits de la instrucción?</td></tr>
+      <tr><td class="m">UsaRs1, UsaRs2</td><td class="m">1 + 1</td><td class="m">1 = lee ese registro</td><td>ID (hazard)</td><td>¿La instrucción realmente lee rs1 / rs2? Evita stalls falsos.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Tabla principal</h2>
+  <div class="key">
+    <span><i class="sw" style="background: var(--idc)"></i>se usa en ID</span>
+    <span><i class="sw" style="background: var(--ex)"></i>viaja a EX</span>
+    <span><i class="sw" style="background: var(--mem)"></i>viaja a MEM</span>
+    <span><i class="sw" style="background: var(--wb)"></i>viaja a WB</span>
+    <span><span class="m">—</span> no importa (en el hardware se pone 0)</span>
+  </div>
+  <div class="tbl">
+  <table class="main">
+    <thead>
+      <tr class="stage">
+        <th></th><th></th>
+        <th colspan="4" class="ci">ID</th>
+        <th colspan="6" class="cx">EX</th>
+        <th colspan="2" class="cm">MEM</th>
+        <th colspan="2" class="cw">WB</th>
+      </tr>
+      <tr>
+        <th>Familia · opcode</th><th>Instrucciones</th>
+        <th class="ci">ImmSel</th><th class="ci">UsaRs1</th><th class="ci">UsaRs2</th><th class="ci">Halt</th>
+        <th class="cx">ALUSrcA</th><th class="cx">ALUSrcB</th><th class="cx">ALUOp</th><th class="cx">Branch</th><th class="cx">Jal</th><th class="cx">Jalr</th>
+        <th class="cm">MemRead</th><th class="cm">MemWrite</th>
+        <th class="cw">RegWrite</th><th class="cw">WBSel</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="fam">OP · tipo R<small>0110011</small></td><td class="ins">add sub sll srl sra and or xor slt sltu</td>
+        <td class="dc">—</td><td><span class="one">1</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">rs2</span></td><td><span class="val">10</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">ALU</span></td>
+      </tr>
+      <tr>
+        <td class="fam">OP-IMM<small>0010011</small></td><td class="ins">addi andi ori xori slti sltiu slli srli srai</td>
+        <td><span class="val">I</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">imm</span></td><td><span class="val">11</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">ALU</span></td>
+      </tr>
+      <tr>
+        <td class="fam">LOAD<small>0000011</small></td><td class="ins">lb lh lw lbu lhu</td>
+        <td><span class="val">I</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">imm</span></td><td><span class="val">00</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">MEM</span></td>
+      </tr>
+      <tr>
+        <td class="fam">STORE<small>0100011</small></td><td class="ins">sb sh sw</td>
+        <td><span class="val">S</span></td><td><span class="one">1</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">imm</span></td><td><span class="val">00</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="one">1</span></td>
+        <td><span class="zero">0</span></td><td class="dc">—</td>
+      </tr>
+      <tr>
+        <td class="fam">BRANCH<small>1100011</small></td><td class="ins">beq bne</td>
+        <td><span class="val">B</span></td><td><span class="one">1</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">rs2</span></td><td><span class="val">01</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td class="dc">—</td>
+      </tr>
+      <tr>
+        <td class="fam">JAL<small>1101111</small></td><td class="ins">jal</td>
+        <td><span class="val">J</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td class="dc">—</td><td class="dc">—</td><td class="dc">—</td><td><span class="zero">0</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">PC+4</span></td>
+      </tr>
+      <tr>
+        <td class="fam">JALR<small>1100111</small></td><td class="ins">jalr</td>
+        <td><span class="val">I</span></td><td><span class="one">1</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">rs1</span></td><td><span class="val">imm</span></td><td><span class="val">00</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="one">1</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">PC+4</span></td>
+      </tr>
+      <tr>
+        <td class="fam">LUI<small>0110111</small></td><td class="ins">lui</td>
+        <td><span class="val">U</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="val">cero</span></td><td><span class="val">imm</span></td><td><span class="val">00</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="one">1</span></td><td><span class="val">ALU</span></td>
+      </tr>
+      <tr>
+        <td class="fam">SYSTEM<small>1110011</small></td><td class="ins">ebreak (HALT)</td>
+        <td class="dc">—</td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="one">1</span></td>
+        <td class="dc">—</td><td class="dc">—</td><td class="dc">—</td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td class="dc">—</td>
+      </tr>
+      <tr>
+        <td class="fam">otro opcode<small>no implementado</small></td><td class="ins">se trata como NOP</td>
+        <td class="dc">—</td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td class="dc">—</td><td class="dc">—</td><td class="dc">—</td><td><span class="zero">0</span></td><td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td><span class="zero">0</span></td>
+        <td><span class="zero">0</span></td><td class="dc">—</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Las cinco señales que escriben o desvían algo (<span class="m">RegWrite</span>, <span class="m">MemWrite</span>, <span class="m">Branch</span>, <span class="m">Jal</span>, <span class="m">Jalr</span>) valen 0 en una burbuja. Por eso poner en 0 el control de ID/EX alcanza para anular una instrucción: es exactamente lo que hacen el stall y el flush.</p>
+</section>
+
+<section>
+  <h2>Cómo se lee una fila</h2>
+  <div class="grid2">
+    <div>
+      <h3><span class="m">lw x9, 120(x10)</span> · LOAD</h3>
+      <ul>
+        <li><b>ID:</b> el Imm Gen arma el inmediato con formato <b>I</b> (120). Lee rs1 = x10.</li>
+        <li><b>EX:</b> ALU = x10 + 120 (<span class="m">ALUSrcB = imm</span>, <span class="m">ALUOp = 00</span> suma).</li>
+        <li><b>MEM:</b> <span class="m">MemRead = 1</span>: lee la memoria en esa dirección.</li>
+        <li><b>WB:</b> <span class="m">RegWrite = 1</span>, <span class="m">WBSel = MEM</span>: el dato leído va a x9.</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="m">sw x9, 120(x10)</span> · STORE</h3>
+      <ul>
+        <li><b>ID:</b> inmediato con formato <b>S</b> (los bits están partidos). Lee rs1 = x10 y rs2 = x9.</li>
+        <li><b>EX:</b> ALU = x10 + 120. El valor de x9 sigue de largo hacia MEM como dato a guardar.</li>
+        <li><b>MEM:</b> <span class="m">MemWrite = 1</span>: escribe x9 en esa dirección.</li>
+        <li><b>WB:</b> <span class="m">RegWrite = 0</span>: no hay registro destino (esos bits son parte del inmediato).</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="m">beq x1, x2, etiqueta</span> · BRANCH</h3>
+      <ul>
+        <li><b>EX:</b> la ALU resta x1 − x2 (<span class="m">ALUOp = 01</span>) y mira <span class="m">zero</span>. En paralelo, el sumador <b>Add</b> calcula PC + imm.</li>
+        <li>Salta si <span class="m">Branch = 1</span> y (funct3 = beq y zero = 1, o funct3 = bne y zero = 0).</li>
+        <li>No escribe registros ni memoria.</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="m">jal x1, etiqueta</span> · JAL</h3>
+      <ul>
+        <li><b>EX:</b> el destino lo calcula el sumador Add (PC + imm). La ALU no se usa.</li>
+        <li><b>WB:</b> <span class="m">WBSel = PC+4</span>: guarda la dirección de retorno en x1.</li>
+        <li><span class="m">jalr</span> es igual pero el destino es rs1 + imm, que sí calcula la ALU, con el bit 0 forzado a 0.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>El control de la ALU (se implementa en EX)</h2>
+  <p>Como en el teórico (diapositivas 10 y 11), el control se divide en dos niveles: la unidad de control principal genera <span class="m">ALUOp</span> mirando solo el opcode, y un control de ALU en EX combina <span class="m">ALUOp</span> con <span class="m">funct3</span> y el bit 30 (<span class="m">funct7[5]</span>) para elegir la operación exacta.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>ALUOp</th><th>Quién lo usa</th><th>funct3</th><th>bit 30</th><th>Operación</th></tr></thead>
+    <tbody>
+      <tr><td class="m">00</td><td>load, store, jalr, lui</td><td class="m">—</td><td class="m">—</td><td>ADD</td></tr>
+      <tr><td class="m">01</td><td>beq, bne</td><td class="m">—</td><td class="m">—</td><td>SUB (para mirar zero)</td></tr>
+      <tr><td class="m">10</td><td>tipo R</td><td class="m">000</td><td class="m">0 / 1</td><td>ADD / SUB</td></tr>
+      <tr><td class="m">10</td><td>tipo R</td><td class="m">101</td><td class="m">0 / 1</td><td>SRL / SRA</td></tr>
+      <tr><td class="m">10</td><td>tipo R</td><td class="m">001 · 010 · 011 · 100 · 110 · 111</td><td class="m">0</td><td>SLL · SLT · SLTU · XOR · OR · AND</td></tr>
+      <tr><td class="m">11</td><td>tipo I</td><td class="m">000</td><td class="m">se ignora</td><td>ADD (addi, nunca resta)</td></tr>
+      <tr><td class="m">11</td><td>tipo I</td><td class="m">101</td><td class="m">0 / 1</td><td>SRL / SRA (srli / srai)</td></tr>
+      <tr><td class="m">11</td><td>tipo I</td><td class="m">001 · 010 · 011 · 100 · 110 · 111</td><td class="m">se ignora</td><td>SLL · SLT · SLTU · XOR · OR · AND</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <b class="t">Por qué hacen falta dos códigos distintos para R (10) e I (11)</b>
+    <p>En las instrucciones tipo I, los bits 31 a 20 son el inmediato. Si el inmediato es negativo, el bit 30 vale 1. Con un solo código, <span class="m">addi</span> con un número negativo se confundiría con <span class="m">sub</span>:</p>
+<pre class="code">addi x1, x2, -1    →  inmediato = 0xFFF  →  bit 30 = 1
+                       con ALUOp = 10 la ALU haría x2 − (−1) = x2 + 1   ✗
+                       con ALUOp = 11 se ignora el bit 30: x2 + (−1)   ✓</pre>
+    <p>En tipo I el bit 30 solo cuenta para <span class="m">srli</span> / <span class="m">srai</span>, donde los bits 31 a 25 no son inmediato sino funct7. Es un error clásico y una buena pregunta de defensa.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Formatos del inmediato (ImmSel)</h2>
+  <p>El Imm Gen reacomoda los bits de la instrucción según el formato y extiende el signo con el bit 31, que en RISC-V es siempre el bit de signo.</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>ImmSel</th><th>Instrucciones</th><th>Inmediato de 32 bits</th><th>Rango</th></tr></thead>
+    <tbody>
+      <tr><td class="m">I</td><td>OP-IMM, LOAD, JALR</td><td class="m">{20 × inst[31], inst[31:20]}</td><td>−2048 … 2047</td></tr>
+      <tr><td class="m">S</td><td>STORE</td><td class="m">{20 × inst[31], inst[31:25], inst[11:7]}</td><td>−2048 … 2047</td></tr>
+      <tr><td class="m">B</td><td>BRANCH</td><td class="m">{19 × inst[31], inst[31], inst[7], inst[30:25], inst[11:8], 0}</td><td>−4096 … 4094, par</td></tr>
+      <tr><td class="m">U</td><td>LUI</td><td class="m">{inst[31:12], 12 × 0}</td><td>20 bits altos</td></tr>
+      <tr><td class="m">J</td><td>JAL</td><td class="m">{11 × inst[31], inst[31], inst[19:12], inst[20], inst[30:21], 0}</td><td>±1 MiB, par</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Ancho de loads y stores (funct3 en MEM y WB)</h2>
+  <p>El control principal no distingue <span class="m">lb</span> de <span class="m">lw</span>: los dos son LOAD. El ancho y el signo los decide <span class="m">funct3</span>, que viaja en los latches hasta MEM (para los byte enables) y WB (para la extensión).</p>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>funct3</th><th>Load</th><th>Store</th><th>Tamaño</th><th>Extensión al leer</th></tr></thead>
+    <tbody>
+      <tr><td class="m">000</td><td class="m">lb</td><td class="m">sb</td><td>byte (8 bits)</td><td>con signo</td></tr>
+      <tr><td class="m">001</td><td class="m">lh</td><td class="m">sh</td><td>media palabra (16)</td><td>con signo</td></tr>
+      <tr><td class="m">010</td><td class="m">lw</td><td class="m">sw</td><td>palabra (32)</td><td>—</td></tr>
+      <tr><td class="m">100</td><td class="m">lbu</td><td class="m">—</td><td>byte</td><td>con ceros</td></tr>
+      <tr><td class="m">101</td><td class="m">lhu</td><td class="m">—</td><td>media palabra</td><td>con ceros</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Decisiones de esta tabla</h2>
+  <ol>
+    <li><b><span class="m">lui</span> usa la ALU con el primer operando en cero</b> (<span class="m">ALUSrcA = cero</span>): resultado = 0 + inmediato. Los bits 19 a 15 de <span class="m">lui</span> son parte del inmediato, no un registro, así que no se puede usar rs1.</li>
+    <li><b>Dos niveles de control para la ALU</b>, como en el teórico: el control principal solo mira el opcode y el control de la ALU en EX completa con funct3 y el bit 30.</li>
+    <li><b><span class="m">UsaRs1</span> y <span class="m">UsaRs2</span></b> le avisan a la unidad de hazard qué registros lee de verdad la instrucción. Sin esto, <span class="m">ebreak</span> (que tiene x1 en el campo rs2) o <span class="m">lui</span> podrían frenar el pipeline sin motivo.</li>
+    <li><b>Un opcode desconocido se trata como NOP</b>: todas las señales que escriben valen 0, así una instrucción inválida no corrompe registros ni memoria.</li>
+    <li><b><span class="m">Halt</span> viaja hasta WB</b>: cuando llega, todas las instrucciones anteriores ya terminaron y el pipeline está vacío.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Para la defensa</h2>
+  <ol class="qs">
+    <li><b>¿Qué señales activa un <span class="m">sw</span>? ¿Por qué no escribe un registro?</b>MemWrite = 1, ALUSrcB = imm, ALUOp = suma, ImmSel = S. RegWrite = 0 porque el formato S no tiene rd: esos bits forman parte del inmediato.</li>
+    <li><b>¿Por qué <span class="m">addi</span> y <span class="m">add</span> tienen ALUOp distinto si los dos suman?</b>Porque en tipo I el bit 30 es parte del inmediato y no debe interpretarse como "resta".</li>
+    <li><b>¿Qué diferencia hay entre <span class="m">lb</span> y <span class="m">lbu</span> para la unidad de control?</b>Ninguna: generan las mismas señales. La diferencia la resuelve funct3 en WB, al extender el byte con signo o con ceros.</li>
+    <li><b>¿Cómo se anula una instrucción en el pipeline?</b>Poniendo en 0 sus señales de control: sin RegWrite, MemWrite ni saltos no modifica nada, aunque siga avanzando por las etapas.</li>
+  </ol>
+</section>
+
+</div>
