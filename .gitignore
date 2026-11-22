@@ -32,3 +32,10 @@ sim_out/
 # PDFs (enunciado, TEORICO/, TPs anteriores): no se suben al repo,
 # se pasan aparte. El informe .docx si se versiona.
 *.pdf
+
+# programas aleatorios: se regeneran igual con sw/gen_random.py (semilla fija)
+programs/random/
+
+# Python compilado
+__pycache__/
+*.pyc

@@ -1,0 +1,41 @@
+direc.    palabra   linea  fuente                            instruccion real
+00000000  00000f93      7  li    t6, 0                       addi x31, x0, 0
+00000004  00000413      8  li    s0, 0                       addi x8, x0, 0
+00000008  00c004ef     11  jal   s1, j1                      jal x9, 12
+0000000c  001f8f93     12  addi  t6, t6, 1                   addi x31, x31, 1
+00000010  002f8f93     13  addi  t6, t6, 2                   addi x31, x31, 2
+00000014  00140413     14  j1:     addi  s0, s0, 1           addi x8, x8, 1
+00000018  0080006f     17  j     j2                          jal x0, 8
+0000001c  004f8f93     18  addi  t6, t6, 4                   addi x31, x31, 4
+00000020  00140413     19  j2:     addi  s0, s0, 1           addi x8, x8, 1
+00000024  00600513     22  li    a0, 6                       addi x10, x0, 6
+00000028  050000ef     23  jal   ra, doble                   jal x1, 80
+0000002c  00050913     24  addi  s2, a0, 0                   addi x18, x10, 0
+00000030  048000ef     25  jal   ra, doble                   jal x1, 72
+00000034  00050993     26  addi  s3, a0, 0                   addi x19, x10, 0
+00000038  40000113     29  li    sp, 0x400                   addi x2, x0, 1024
+0000003c  00300513     30  li    a0, 3                       addi x10, x0, 3
+00000040  040000ef     31  jal   ra, cuadruple               jal x1, 64
+00000044  00050a13     32  addi  s4, a0, 0                   addi x20, x10, 0
+00000048  004002ef     35  jal   t0, base                    jal x5, 4
+0000004c  00928367     36  base:   jalr  t1, 9(t0)           jalr x6, 9(x5)
+00000050  008f8f93     37  addi  t6, t6, 8                   addi x31, x31, 8
+00000054  05500a93     38  addi  s5, zero, 0x55              addi x21, x0, 85
+00000058  00400e6f     41  jal   t3, aca                     jal x28, 4
+0000005c  014e0e13     42  aca:    addi  t3, t3, 20          addi x28, x28, 20
+00000060  01c02023     43  sw    t3, 0(zero)                 sw x28, 0(x0)
+00000064  00002e83     44  lw    t4, 0(zero)                 lw x29, 0(x0)
+00000068  000e8067     45  jalr  zero, 0(t4)                 jalr x0, 0(x29)
+0000006c  010f8f93     46  addi  t6, t6, 16                  addi x31, x31, 16
+00000070  06600b13     47  fin:    addi  s6, zero, 0x66      addi x22, x0, 102
+00000074  00100073     48  halt                              halt
+00000078  00a50533     51  doble:  add   a0, a0, a0          add x10, x10, x10
+0000007c  00008067     52  ret                               jalr x0, 0(x1)
+00000080  ffc10113     55  addi  sp, sp, -4                  addi x2, x2, -4
+00000084  00112023     56  sw    ra, 0(sp)                   sw x1, 0(x2)
+00000088  ff1ff0ef     57  jal   ra, doble                   jal x1, -16
+0000008c  fedff0ef     58  jal   ra, doble                   jal x1, -20
+00000090  00012083     59  lw    ra, 0(sp)                   lw x1, 0(x2)
+00000094  00410113     60  addi  sp, sp, 4                   addi x2, x2, 4
+00000098  00008067     61  ret                               jalr x0, 0(x1)
+0000009c  00100073         (halt agregado)                   halt

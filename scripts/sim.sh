@@ -5,6 +5,10 @@
 #
 # Uso:   scripts/sim.sh <nombre_del_tb>          ej: scripts/sim.sh if_stage_tb
 #        scripts/sim.sh <nombre_del_tb> --wave   guarda formas de onda (.wdb)
+# Opciones extra (en cualquier orden despues del tb):
+#        --no-compile   reusa lo compilado en la corrida anterior
+#        +ALGO=valor    plusarg para el testbench ($value$plusargs), ej:
+#                       scripts/sim.sh cpu_top_tb +PROG=forwarding
 #
 # Es lo mismo que hace "Run Simulation" en Vivado (xvlog -> xelab -> xsim),
 # pero mas rapido para iterar. La salida queda en sim_out/ (no versionar).
@@ -15,7 +19,19 @@
 
 set -e
 TB="$1"
-[ -z "$TB" ] && { echo "uso: $0 <testbench> [--wave]"; exit 1; }
+[ -z "$TB" ] && { echo "uso: $0 <testbench> [--wave] [--no-compile] [+ARG=valor ...]"; exit 1; }
+shift
+WAVE=0; COMPILE=1; PLUSARGS=""
+for a in "$@"; do
+    case "$a" in
+        --wave)       WAVE=1 ;;
+        --no-compile) COMPILE=0 ;;
+        # xsim.bat pasa por cmd, que se come el "=": se manda como "A:valor"
+        # y el testbench acepta las dos formas
+        +*)           a="${a#+}"; PLUSARGS="$PLUSARGS -testplusarg ${a/=/:}" ;;
+        *)            echo "opcion desconocida: $a"; exit 1 ;;
+    esac
+done
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VIVADO="${VIVADO:-/c/Xilinx/Vivado/2022.2}"
@@ -35,18 +51,20 @@ if [ -d "$IP_GEN" ]; then
     cp -f $(find "$IP_GEN" -maxdepth 2 -name '*.mif') . 2>/dev/null || true
 fi
 
+if [ $COMPILE = 1 ]; then
 "$BIN/xvlog.bat" -i "$ROOT/rtl/cpu" $RTL_FILES $IP_FILES "$VIVADO/data/verilog/src/glbl.v" "$TB_FILE" > xvlog.log 2>&1 \
     || { grep -E "ERROR|WARNING" xvlog.log; exit 1; }
 
 LIBS="-L blk_mem_gen_v8_4_5 -L unisims_ver -L unimacro_ver -L secureip -L xpm"
-if [ "$2" = "--wave" ]; then DEBUG=typical; else DEBUG=off; fi
+if [ $WAVE = 1 ]; then DEBUG=typical; else DEBUG=off; fi
 "$BIN/xelab.bat" -debug $DEBUG $LIBS "$TB" glbl -s "${TB}_sim" > xelab.log 2>&1 \
     || { grep -E "ERROR" xelab.log; exit 1; }
+fi
 
-if [ "$2" = "--wave" ]; then
+if [ $WAVE = 1 ]; then
     echo "log_wave -recursive *; run all; exit" > wave.tcl
-    "$BIN/xsim.bat" "${TB}_sim" -tclbatch wave.tcl -wdb "$TB.wdb" | grep -vE "^\*\*\*\*|^INFO|^#|Time resolution"
+    "$BIN/xsim.bat" "${TB}_sim" -tclbatch wave.tcl -wdb "$TB.wdb" $PLUSARGS | grep -vE "^\*\*\*\*|^INFO|^#|Time resolution"
     echo "formas de onda: $OUT/$TB.wdb"
 else
-    "$BIN/xsim.bat" "${TB}_sim" -R | grep -vE "^\*\*\*\*|^INFO|^#|Time resolution"
+    "$BIN/xsim.bat" "${TB}_sim" -R $PLUSARGS | grep -vE "^\*\*\*\*|^INFO|^#|Time resolution"
 fi

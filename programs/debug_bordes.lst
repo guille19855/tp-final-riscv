@@ -1,0 +1,12 @@
+direc.    palabra   linea  fuente                            instruccion real
+00000000  008000ef     11  jal   ra, sigue                   jal x1, 8
+00000004  00100f93     12  addi  t6, zero, 1                 addi x31, x0, 1
+00000008  ffc00293     13  sigue:  li    t0, -4              addi x5, x0, -4
+0000000c  05500313     14  li    t1, 0x55                    addi x6, x0, 85
+00000010  00602023     15  sw    t1, 0(zero)                 sw x6, 0(x0)
+00000014  0062a023     16  sw    t1, 0(t0)                   sw x6, 0(x5)
+00000018  006004a3     17  sb    t1, 9(zero)                 sb x6, 9(x0)
+0000001c  00601723     18  sh    t1, 14(zero)                sh x6, 14(x0)
+00000020  02800167     19  jalr  sp, 40(zero)                jalr x2, 40(x0)
+00000024  00200f93     20  addi  t6, zero, 2                 addi x31, x0, 2
+00000028  00100073     21  fin:    halt                      halt

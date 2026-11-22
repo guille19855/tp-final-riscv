@@ -1,0 +1,389 @@
+<title>Etapa EX del pipeline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: misma hoja técnica que el diagrama del pipeline — esquemático ancho con scroll propio, después ondas, tablas y código a 72ch */
+:root {
+  --bg: #f4f6f5;
+  --panel: #ffffff;
+  --band: #e9eeec;
+  --fg: #18211f;
+  --muted: #5a6964;
+  --rule: #d3dbd8;
+  --latch: #2d5c88;
+  --on-latch: #ffffff;
+  --ctl: #7a5d0e;
+  --dbg: #0f7a70;
+  --stallbg: #fbe9d7;
+  --flushbg: #e3ecf6;
+  --unk: #c9d2cf;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e;
+    --rule: #2b3633; --latch: #6fa6d8; --on-latch: #0e1a26; --ctl: #e0b64e; --dbg: #3cc4b4;
+    --stallbg: #3a2a18; --flushbg: #1a2a3a; --unk: #3a4643; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111715; --panel: #18201e; --band: #1c2523; --fg: #e2e9e6; --muted: #94a39e;
+  --rule: #2b3633; --latch: #6fa6d8; --on-latch: #0e1a26; --ctl: #e0b64e; --dbg: #3cc4b4;
+  --stallbg: #3a2a18; --flushbg: #1a2a3a; --unk: #3a4643; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1100px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 52px; }
+header { display: grid; gap: 10px; max-width: 72ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(32px, 5vw, 48px); line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 26px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lead { font-size: 18px; color: var(--muted); }
+.m, code { font-family: var(--mono); font-size: .88em; }
+section { display: grid; gap: 18px; }
+section > p, section > ul { max-width: 72ch; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+figure { margin: 0; display: grid; gap: 14px; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; }
+figcaption { font-size: 14px; color: var(--muted); max-width: 80ch; }
+svg.d { display: block; width: 100%; height: auto; color: var(--fg); }
+svg.sch { min-width: 860px; }
+svg.wave { min-width: 860px; }
+svg.d text { font-family: var(--mono); font-size: 11px; fill: currentColor; }
+svg.d .bx { font-family: var(--body); font-size: 13px; font-weight: 600; }
+svg.d .sm { font-size: 10px; fill: var(--muted); }
+svg.d .wl { font-size: 10.5px; fill: var(--muted); }
+svg.d .cl { font-size: 10.5px; fill: var(--ctl); }
+svg.d .dl { font-size: 10.5px; fill: var(--dbg); font-weight: 600; }
+svg.d .lh { font-size: 12px; font-weight: 600; fill: var(--latch); }
+svg.d .onl { font-size: 10px; font-weight: 600; fill: var(--on-latch); }
+svg.d .box { fill: var(--panel); stroke: currentColor; stroke-width: 1.3; }
+svg.d .inner { fill: var(--band); stroke: var(--muted); stroke-width: 1; }
+svg.d .latch { fill: var(--latch); }
+svg.d .hollow { fill: var(--panel); stroke: var(--latch); stroke-width: 1.5; stroke-dasharray: 3 2; }
+svg.d .w { fill: none; stroke: currentColor; stroke-width: 1.4; }
+svg.d .c { fill: none; stroke: var(--ctl); stroke-width: 1.3; stroke-dasharray: 5 4; }
+svg.d .dbgw { fill: none; stroke: var(--dbg); stroke-width: 1.4; stroke-dasharray: 2 3; }
+svg.d .dot { fill: currentColor; }
+svg.d .clkmark { fill: none; stroke: currentColor; stroke-width: 1.1; }
+
+/* ondas */
+svg.wave .lane { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+svg.wave .sig { fill: none; stroke: var(--fg); stroke-width: 1.5; }
+svg.wave .bus { fill: var(--panel); stroke: var(--fg); stroke-width: 1.2; }
+svg.wave .unk { fill: var(--unk); stroke: var(--muted); stroke-width: 1; }
+svg.wave .val { font-size: 11px; }
+svg.wave .grid { stroke: var(--rule); stroke-width: 1; }
+svg.wave .stallbg { fill: var(--stallbg); }
+svg.wave .flushbg { fill: var(--flushbg); }
+svg.wave .tag { font-family: var(--body); font-size: 11.5px; font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px 26px; font-size: 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend svg { flex: none; }
+
+.tbl { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td:first-child { font-family: var(--mono); font-size: 13.5px; white-space: nowrap; }
+.prio { font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+pre.code { margin: 0; background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.55; overflow-x: auto; }
+pre.code .k { color: var(--latch); font-weight: 600; }
+pre.code .cm { color: var(--muted); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.pair > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.pair h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; }
+@media (max-width: 800px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+ol.qs { margin: 0; padding-left: 22px; display: grid; gap: 10px; max-width: 80ch; }
+ol.qs b { display: block; }
+svg.d .bub { fill: none; stroke: var(--ctl); stroke-width: 1.3; }
+.callout { border-left: 4px solid var(--ctl); background: var(--panel); padding: 12px 16px; max-width: 72ch; border-radius: 0 6px 6px 0; }
+svg.d .mux { fill: var(--panel); stroke: currentColor; stroke-width: 1.3; }
+svg.d .alu { fill: var(--band); stroke: currentColor; stroke-width: 1.4; }
+svg.d .crit { fill: none; stroke: #c2410c; stroke-width: 7; stroke-opacity: .2; stroke-linejoin: round; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">TP Final · Fase 3 · rtl/cpu/ex_stage.v</span>
+  <h1>Etapa EX</h1>
+  <p class="lead">Execute: elige los operandos correctos con forwarding, calcula con la ALU, decide si la instrucción salta y adónde, y deja el resultado en el latch EX/MEM para el ciclo siguiente.</p>
+</header>
+
+<figure>
+  <div class="scroll">
+  <svg class="d sch" viewBox="0 0 1000 725" role="img" aria-label="Esquemático de la etapa EX: rs1_data y rs2_data pasan por los multiplexores de forwarding (banco, EX/MEM o WB) que maneja la unidad de forwarding; después por los multiplexores ALUSrcA (rs1 o cero) y ALUSrcB (rs2 o inmediato) hacia la ALU, controlada por el control de ALU. Un sumador calcula PC más inmediato. La decisión de salto usa zero de la ALU y genera branch_taken; un multiplexor elige el destino entre PC+imm y el resultado de la ALU con el bit 0 en cero para jalr. El resultado que va a EX/MEM es PC+4 para jal y jalr o el resultado de la ALU en el resto. El dato rs2 forwardeado también va a EX/MEM para los stores.">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+      <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--ctl)"/></marker>
+    </defs>
+
+    <!-- camino critico (resaltado de fondo) -->
+    <path class="crit" d="M866,305 L888,305 L888,690 L130,690 L130,240 L200,240 L280,240 L310,247 L430,247 L520,345 L560,345 L560,385 L710,390 L790,390 L790,48 L985,48"/>
+
+    <!-- encabezados -->
+    <text class="bx" x="20" y="22">EX</text>
+    <text class="lh" x="53" y="62" text-anchor="middle">ID/EX</text>
+    <text class="lh" x="853" y="62" text-anchor="middle">EX/MEM</text>
+
+    <!-- latches -->
+    <rect class="latch" x="40" y="70" width="26" height="570"/>
+    <polyline style="fill: none; stroke: var(--on-latch); stroke-width: 1.1" points="40,628 47,634 40,640"/>
+    <rect class="latch" x="840" y="70" width="26" height="570"/>
+    <polyline style="fill: none; stroke: var(--on-latch); stroke-width: 1.1" points="840,628 847,634 840,640"/>
+
+    <!-- pc -> sumador -->
+    <path class="w" d="M66,90 L380,90" marker-end="url(#a)"/>
+    <text class="wl" x="80" y="83">pc</text>
+    <rect class="box" x="380" y="75" width="80" height="60"/>
+    <text class="bx" x="420" y="102" text-anchor="middle">Add</text>
+    <text class="sm" x="420" y="118" text-anchor="middle">pc + imm</text>
+    <path class="w" d="M460,95 L640,95" marker-end="url(#a)"/>
+    <text class="wl" x="550" y="88" text-anchor="middle">pc_imm</text>
+
+    <!-- pc4 -->
+    <path class="w" d="M66,155 L700,155 L700,318 L720,318" marker-end="url(#a)"/>
+    <text class="wl" x="80" y="148">pc4</text>
+
+    <!-- imm -->
+    <path class="w" d="M66,430 L240,430 L240,388 L280,388" marker-end="url(#a)"/>
+    <text class="wl" x="80" y="423">imm</text>
+    <circle class="dot" cx="240" cy="388" r="2.6"/>
+    <path class="w" d="M240,388 L240,120 L380,120" marker-end="url(#a)"/>
+
+    <!-- rs1_data -> mux forwarding A -->
+    <path class="w" d="M66,215 L165,215" marker-end="url(#a)"/>
+    <text class="wl" x="72" y="208">rs1_data</text>
+    <polygon class="mux" points="165,200 200,212 200,268 165,280"/>
+    <text class="sm" x="170" y="219">00</text>
+    <text class="sm" x="170" y="244">10</text>
+    <text class="sm" x="170" y="269">01</text>
+    <path class="w" d="M200,240 L280,240" marker-end="url(#a)"/>
+    <text class="wl" x="246" y="233">a_fwd</text>
+
+    <!-- ALUSrcA -->
+    <polygon class="mux" points="280,222 310,232 310,262 280,272"/>
+    <text class="sm" x="258" y="266" text-anchor="end">0</text>
+    <path class="w" d="M262,262 L280,262"/>
+    <path class="w" d="M310,247 L430,247" marker-end="url(#a)"/>
+
+    <!-- rs2_data -> mux forwarding B -->
+    <path class="w" d="M66,345 L165,345" marker-end="url(#a)"/>
+    <text class="wl" x="72" y="338">rs2_data</text>
+    <polygon class="mux" points="165,330 200,342 200,398 165,410"/>
+    <text class="sm" x="170" y="349">00</text>
+    <text class="sm" x="170" y="374">10</text>
+    <text class="sm" x="170" y="399">01</text>
+    <path class="w" d="M200,370 L280,370" marker-end="url(#a)"/>
+    <text class="wl" x="246" y="363">b_fwd</text>
+    <circle class="dot" cx="215" cy="370" r="2.6"/>
+    <path class="w" d="M215,370 L215,465 L840,465" marker-end="url(#a)"/>
+    <text class="wl" x="742" y="458">rs2_fwd</text>
+
+    <!-- ALUSrcB -->
+    <polygon class="mux" points="280,355 310,365 310,395 280,405"/>
+    <path class="w" d="M310,380 L430,380" marker-end="url(#a)"/>
+
+    <!-- ALU -->
+    <polygon class="alu" points="430,215 520,255 520,365 430,405 430,330 448,310 430,290"/>
+    <text class="bx" x="485" y="315" text-anchor="middle">ALU</text>
+
+    <!-- resultado ALU -->
+    <path class="w" d="M520,290 L720,290" marker-end="url(#a)"/>
+    <text class="wl" x="530" y="283">alu_result</text>
+    <circle class="dot" cx="600" cy="290" r="2.6"/>
+    <path class="w" d="M600,290 L600,125 L640,125" marker-end="url(#a)"/>
+    <text class="wl" x="606" y="205">&amp; ~1</text>
+
+    <!-- mux destino -->
+    <polygon class="mux" points="640,80 670,90 670,130 640,140"/>
+    <path class="w" d="M670,110 L690,110 L690,28 L985,28" marker-end="url(#a)"/>
+    <text class="wl" x="975" y="22" text-anchor="end">branch_target → IF</text>
+
+    <!-- zero -> decision -->
+    <path class="c" d="M520,345 L560,345 L560,385 L600,385" marker-end="url(#ac)"/>
+    <text class="cl" x="526" y="339">zero</text>
+    <rect class="box" x="600" y="360" width="110" height="60"/>
+    <text class="bx" x="655" y="382" text-anchor="middle">Decisión</text>
+    <text class="sm" x="655" y="397" text-anchor="middle">beq: zero</text>
+    <text class="sm" x="655" y="410" text-anchor="middle">bne: ~zero</text>
+    <path class="c" d="M710,390 L790,390 L790,48 L985,48" marker-end="url(#ac)"/>
+    <text class="cl" x="975" y="42" text-anchor="end">branch_taken → IF · ID</text>
+    <!-- seleccion del mux de destino: jalr -->
+    <path class="c" d="M655,175 L655,137" marker-end="url(#ac)"/>
+    <text class="cl" x="661" y="178">jalr</text>
+
+    <!-- mux resultado -->
+    <polygon class="mux" points="720,275 750,285 750,325 720,335"/>
+    <path class="w" d="M750,305 L840,305" marker-end="url(#a)"/>
+    <text class="wl" x="815" y="298" text-anchor="middle">result</text>
+
+    <!-- control de ALU -->
+    <rect class="box" x="430" y="520" width="120" height="50"/>
+    <text class="bx" x="490" y="541" text-anchor="middle">Control ALU</text>
+    <text class="sm" x="490" y="558" text-anchor="middle">alu_control.v</text>
+    <path class="c" d="M490,520 L490,378" marker-end="url(#ac)"/>
+    <text class="cl" x="496" y="425">alu_ctrl</text>
+
+    <!-- rd, funct3 -->
+    <path class="w" d="M66,505 L840,505" marker-end="url(#a)"/>
+    <text class="wl" x="560" y="498">rd · funct3</text>
+
+    <!-- numeros de registro -> forwarding -->
+    <path class="w" d="M66,550 L165,550" marker-end="url(#a)"/>
+    <text class="wl" x="72" y="568">rs1·rs2</text>
+    <rect class="box" x="165" y="520" width="120" height="60"/>
+    <text class="bx" x="225" y="546" text-anchor="middle">Forwarding</text>
+    <text class="sm" x="225" y="563" text-anchor="middle">forwarding_unit.v</text>
+    <path class="c" d="M165,535 L155,535 L155,295 L182,295 L182,279" marker-end="url(#ac)"/>
+    <text class="cl" x="160" y="318">ForwardA</text>
+    <path class="c" d="M188,520 L188,403" marker-end="url(#ac)"/>
+    <text class="cl" x="193" y="494">ForwardB</text>
+
+    <!-- realimentacion EX/MEM -->
+    <path class="w" d="M866,305 L888,305 L888,690 L130,690 L130,240 L165,240" marker-end="url(#a)"/>
+    <circle class="dot" cx="130" cy="370" r="2.6"/>
+    <path class="w" d="M130,370 L165,370" marker-end="url(#a)"/>
+    <circle class="dot" cx="225" cy="690" r="2.6"/>
+    <path class="w" d="M225,690 L225,581" marker-end="url(#a)"/>
+    <text class="wl" x="560" y="683" text-anchor="middle">desde EX/MEM: result · rd · reg_write</text>
+
+    <!-- desde WB -->
+    <path class="w" d="M145,718 L145,265 L165,265" marker-end="url(#a)"/>
+    <circle class="dot" cx="145" cy="395" r="2.6"/>
+    <path class="w" d="M145,395 L165,395" marker-end="url(#a)"/>
+    <circle class="dot" cx="145" cy="600" r="2.6"/>
+    <path class="w" d="M145,600 L265,600 L265,581" marker-end="url(#a)"/>
+    <text class="wl" x="153" y="716">desde WB: wb_data · rd · reg_write</text>
+
+    <!-- control -->
+    <path class="c" d="M66,640 L840,640" marker-end="url(#ac)"/>
+    <text class="cl" x="560" y="657" text-anchor="middle">mem_read · mem_write · reg_write · wb_sel · halt → EX/MEM</text>
+    <text class="cl" x="270" y="657">control</text>
+    <path class="c" d="M325,640 L325,282 L295,282 L295,269" marker-end="url(#ac)"/>
+    <path class="c" d="M300,640 L300,401" marker-end="url(#ac)"/>
+    <text class="cl" x="330" y="615">ALUSrc A/B</text>
+    <path class="c" d="M490,640 L490,571" marker-end="url(#ac)"/>
+    <text class="cl" x="496" y="600">alu_op · funct3 · bit30</text>
+    <path class="c" d="M655,640 L655,421" marker-end="url(#ac)"/>
+    <text class="cl" x="649" y="447" text-anchor="end">branch · jal · jalr</text>
+    <path class="c" d="M735,640 L735,331" marker-end="url(#ac)"/>
+    <text class="cl" x="741" y="600">jal | jalr</text>
+
+    <!-- salidas de EX/MEM -->
+    <path class="w" d="M866,465 L985,465" marker-end="url(#a)"/>
+    <text class="wl" x="975" y="458" text-anchor="end">rs2_data</text>
+    <path class="w" d="M866,505 L985,505" marker-end="url(#a)"/>
+    <text class="wl" x="975" y="498" text-anchor="end">rd · funct3</text>
+    <path class="c" d="M866,630 L985,630" marker-end="url(#ac)"/>
+    <text class="cl" x="975" y="623" text-anchor="end">control</text>
+    <circle class="dot" cx="888" cy="305" r="2.6"/>
+    <path class="w" d="M888,305 L985,305" marker-end="url(#a)"/>
+    <text class="wl" x="975" y="298" text-anchor="end">result</text>
+    <text class="sm" x="990" y="250" text-anchor="end">hacia MEM →</text>
+  </svg>
+  </div>
+  <div class="legend" aria-label="Referencias">
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--fg); stroke-width: 1.6"/></svg>dato</span>
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: var(--ctl); stroke-width: 1.5; stroke-dasharray: 5 4"/></svg>control</span>
+    <span><svg width="14" height="14" aria-hidden="true"><rect width="14" height="14" style="fill: var(--latch)"/></svg>latch de segmentación</span>
+    <span><svg width="34" height="10" aria-hidden="true"><line x1="0" y1="5" x2="34" y2="5" style="stroke: #c2410c; stroke-width: 7; stroke-opacity: .25"/></svg>camino más largo (síntesis)</span>
+  </div>
+  <figcaption>Los multiplexores de forwarding (00 banco, 10 EX/MEM, 01 WB) van antes de los ALUSrc: así el dato de un store (rs2) también sale forwardeado aunque la ALU use el inmediato. El resultado que se guarda en EX/MEM ya es PC+4 para jal/jalr, por eso la realimentación hacia el forwarding es una sola línea. Resaltado, el camino combinacional más largo que reporta la síntesis: EX/MEM → forwarding → ALU → zero → branch_taken.</figcaption>
+</figure>
+
+<section>
+  <h2>Los bloques y su verificación</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Módulo</th><th>Qué hace</th><th>Testbench</th></tr></thead>
+    <tbody>
+      <tr><td>alu.v</td><td>32 bits, combinacional, 10 operaciones. Shifts con <span class="m">b[4:0]</span>, SRA con <span class="m">$signed</span>, SLT con signo y SLTU sin signo, salida <span class="m">zero</span>. Sin carry ni overflow: RISC-V no tiene flags.</td><td>2029 checks: 29 bordes y 2000 aleatorios contra un modelo escrito de otra forma</td></tr>
+      <tr><td>alu_control.v</td><td>Segundo nivel del control: ALUOp + funct3 + bit 30 → operación. En tipo I el bit 30 solo cuenta en shifts.</td><td>93 checks: las instrucciones reales y las 64 combinaciones</td></tr>
+      <tr><td>forwarding_unit.v</td><td>Ecuaciones de la cátedra: 10 desde EX/MEM, 01 desde MEM/WB, 00 banco. EX/MEM tiene prioridad.</td><td>2015 checks: 15 secuencias y 2000 aleatorios</td></tr>
+      <tr><td>ex_stage.v</td><td>Los tres anteriores, los muxes, el sumador del destino, la decisión de salto y el latch EX/MEM.</td><td>60 checks en 16 escenarios</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Las piezas clave en el Verilog</h2>
+  <div class="pair">
+    <div>
+      <h3>Forwarding (forwarding_unit.v)</h3>
+<pre class="code">ex_mem_ok = ex_mem_reg_write &amp;&amp; ex_mem_rd != 0;
+mem_wb_ok = mem_wb_reg_write &amp;&amp; mem_wb_rd != 0;
+forward_a =
+  (ex_mem_ok &amp;&amp; ex_mem_rd == rs1) ? 2'b10 :
+  (mem_wb_ok &amp;&amp; mem_wb_rd == rs1) ? 2'b01 :
+                                    2'b00;</pre>
+    </div>
+    <div>
+      <h3>Control de ALU (alu_control.v)</h3>
+<pre class="code"><span class="k">case</span> (alu_op)
+  00: ADD;                <span class="cm">// ld, st, jalr, lui</span>
+  01: SUB;                <span class="cm">// beq, bne</span>
+  10: {bit30, funct3};    <span class="cm">// tipo R</span>
+  11: {(funct3==101) &amp; bit30,
+       funct3};           <span class="cm">// tipo I</span>
+<span class="k">endcase</span></pre>
+    </div>
+    <div>
+      <h3>Decisión de salto (ex_stage.v)</h3>
+<pre class="code">cond   = (funct3 == BNE) ? ~zero : zero;
+taken  = (branch &amp; cond) | jal | jalr;
+target = jalr ? (alu_result &amp; ~1)
+              : pc + imm;</pre>
+    </div>
+    <div>
+      <h3>Resultado y dato del store (ex_stage.v)</h3>
+<pre class="code">result = (jal | jalr) ? pc4 : alu_result;
+<span class="k">if</span> (reset)   EX/MEM &lt;= 0;
+<span class="k">else if</span> (en) EX/MEM &lt;= {result, b_fwd, ...};
+<span class="cm">// b_fwd y no rs2_data: el dato del sw
+// tambien puede venir de adelante</span></pre>
+    </div>
+  </div>
+  <p class="callout">Decisión 1-A: el multiplexor de PC+4 de jal/jalr está en EX y no en WB. Así lo que hay en EX/MEM es siempre "lo que se va a escribir en rd" (salvo en los loads, donde es la dirección), el forwarding toma una sola fuente sin casos especiales y EX/MEM no necesita llevar los 32 bits de PC+4.</p>
+</section>
+
+<section>
+  <h2>Síntesis (out of context, solo EX)</h2>
+  <div class="tbl">
+  <table>
+    <thead><tr><th>Recurso</th><th>Usado</th><th>Disponible</th><th>Por qué</th></tr></thead>
+    <tbody>
+      <tr><td>Flip-flops</td><td>78 (0,19 %)</td><td>41 600</td><td>Solo el latch EX/MEM: 32 result + 32 dato + 5 rd + 3 funct3 + 6 de control</td></tr>
+      <tr><td>LUTs</td><td>589 (2,83 %)</td><td>20 800</td><td>ALU (sobre todo los shifters), muxes de forwarding y comparadores de registros</td></tr>
+      <tr><td>CARRY4</td><td>24</td><td>8 150</td><td>Cadenas de acarreo de la ALU (suma, resta, SLT) y del sumador PC + imm</td></tr>
+      <tr><td>Latches</td><td>0</td><td>—</td><td>Todos los case combinacionales tienen default</td></tr>
+      <tr><td>Camino más largo</td><td>12 niveles</td><td>—</td><td>ex_mem_rd → forwarding → mux → ALU → zero → branch_taken. Estimación sin restricción de clock; se mide en la Fase 10.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Preguntas para la defensa</h2>
+  <ol class="qs">
+    <li><b>¿Por qué EX/MEM tiene prioridad sobre MEM/WB en el forwarding?</b>Si las dos instrucciones de adelante escriben el mismo registro, la de EX/MEM es la más nueva y es la que vale en el orden del programa.</li>
+    <li><b>¿Por qué se compara rd con 0?</b>x0 vale siempre 0. Si una instrucción "escribe" x0, ese valor no existe y no se puede forwardear.</li>
+    <li><b>¿Y la distancia 3, cuando la productora está en WB y la consumidora en ID?</b>No pasa por el forwarding: la resuelve el bypass del banco de registros, que entrega el dato que WB está escribiendo.</li>
+    <li><b>¿Por qué el forwarding va antes del mux ALUSrcB?</b>Porque el dato a guardar de un store (rs2) también puede depender de una instrucción de adelante, aunque la ALU use el inmediato para la dirección.</li>
+    <li><b>¿Por qué addi con inmediato negativo no se convierte en sub?</b>En tipo I el bit 30 es parte del inmediato. El control de la ALU solo lo usa cuando funct3 = 101 (srli/srai), donde es funct7.</li>
+    <li><b>¿Cuánto cuesta un salto tomado?</b>Dos ciclos: se resuelve en EX y se descartan las dos instrucciones que entraron detrás (IF/ID e ID/EX). Moverlo a ID lo baja a uno.</li>
+    <li><b>¿Por qué jalr pone el bit 0 en 0?</b>Lo pide la especificación de RISC-V, para que el destino sea siempre una dirección par aunque rs1 + imm sea impar.</li>
+    <li><b>¿Cuál es el camino crítico?</b>EX/MEM → forwarding → ALU → zero → decisión → PC: cruza toda la etapa y vuelve a IF en el mismo ciclo. Es el candidato a limitar la frecuencia máxima.</li>
+  </ol>
+</section>
+
+</div>

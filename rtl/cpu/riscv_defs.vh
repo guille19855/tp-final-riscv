@@ -78,4 +78,28 @@
 `define WB_MEM     2'b01        // dato leido de memoria
 `define WB_PC4     2'b10        // PC + 4 (direccion de retorno de jal/jalr)
 
+// ---------------------------------------------------------------------------
+// Operacion de la ALU (4 bits) = {bit30, funct3}: es la misma codificacion
+// que usa RISC-V en las instrucciones tipo R, asi el control de la ALU
+// casi no tiene que traducir nada (ver alu_control.v).
+// ---------------------------------------------------------------------------
+`define ALU_ADD    4'b0000
+`define ALU_SUB    4'b1000
+`define ALU_SLL    4'b0001
+`define ALU_SLT    4'b0010
+`define ALU_SLTU   4'b0011
+`define ALU_XOR    4'b0100
+`define ALU_SRL    4'b0101
+`define ALU_SRA    4'b1101
+`define ALU_OR     4'b0110
+`define ALU_AND    4'b0111
+
+// ---------------------------------------------------------------------------
+// Forwarding: de donde sale cada operando de la ALU (mismos codigos que las
+// diapositivas de la catedra, ForwardA / ForwardB)
+// ---------------------------------------------------------------------------
+`define FWD_REG    2'b00        // valor leido del banco de registros (ID/EX)
+`define FWD_MEM_WB 2'b01        // valor que se esta escribiendo en WB
+`define FWD_EX_MEM 2'b10        // resultado de la instruccion de adelante (EX/MEM)
+
 `endif

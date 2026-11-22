@@ -111,8 +111,8 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
   <div class="strip">
     <div><b>IF</b><span>búsqueda</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
     <div><b>ID</b><span>decodificación</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
-    <div><b>EX</b><span>ejecución</span><span class="st now">siguiente</span></div>
-    <div><b>MEM</b><span>memoria</span><span class="st">pendiente</span></div>
+    <div><b>EX</b><span>ejecución</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
+    <div><b>MEM</b><span>memoria</span><span class="st now">siguiente</span></div>
     <div><b>WB</b><span>escritura</span><span class="st">pendiente</span></div>
   </div>
 </section>
@@ -121,11 +121,11 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
   <h2>Cronograma</h2>
   <p>Cinco semanas. Las etapas del pipeline entran en las dos primeras porque cada una es chica una vez que está claro qué entra y qué sale. Lo más largo es la integración y la Debug Unit, porque ahí aparecen los errores de conexión.</p>
   <div class="weeks">
-    <div class="week cur"><span class="d">19/10 – 25/10</span><b>Semana 1</b><ul><li>Fase 0: preparación</li><li>Fase 1: IF</li><li>Fase 2: ID (empieza)</li></ul></div>
+    <div class="week"><span class="d">19/10 – 25/10</span><b>Semana 1</b><ul><li>Fase 0: preparación</li><li>Fase 1: IF</li><li>Fase 2: ID (empieza)</li></ul></div>
     <div class="week"><span class="d">26/10 – 01/11</span><b>Semana 2</b><ul><li>Fase 2: ID (termina)</li><li>Fase 3: EX</li><li>Fase 4: MEM</li><li>Fase 5: WB</li></ul></div>
     <div class="week"><span class="d">02/11 – 08/11</span><b>Semana 3</b><ul><li>Fase 6: ensamblador</li><li>Fase 7: integración y programas de prueba</li></ul></div>
     <div class="week"><span class="d">09/11 – 15/11</span><b>Semana 4</b><ul><li>Fase 8: Debug Unit y placa</li><li>Fase 9: interfaz Python</li></ul></div>
-    <div class="week"><span class="d">16/11 – 19/11</span><b>Semana 5</b><ul><li>Fase 10: timing y Clock Wizard</li><li>Fase 11: saltos en ID</li><li>Fase 12: informe y defensa</li></ul></div>
+    <div class="week cur"><span class="d">16/11 – 19/11</span><b>Semana 5</b><ul><li>Fase 10: timing y Clock Wizard</li><li>Fase 11: saltos en ID</li><li>Fase 12: informe y defensa</li></ul></div>
   </div>
 </section>
 
@@ -230,25 +230,25 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
       </div>
     </article>
 
-    <article class="phase cur">
+    <article class="phase done">
       <div class="num">3</div>
       <div class="body">
-        <div class="title"><h3>Etapa EX</h3><span class="pill now">siguiente</span></div>
-        <p class="goal">La ALU del TP1 crece a 32 bits y a las 10 operaciones de RISC-V. Se agregan el forwarding y la decisión de salto.</p>
+        <div class="title"><h3>Etapa EX</h3><span class="pill ok">terminada 16/11 · 4 testbenches, 4197 checks</span></div>
+        <p class="goal">ALU nueva de 32 bits con las 10 operaciones de RISC-V (la del TP1 era estilo MIPS y le faltaban SLL, SLT y SLTU). Se agregan el control de la ALU, el forwarding y la decisión de salto.</p>
         <div class="cols">
           <div><h4>El testbench demuestra</h4><ul class="chk">
-            <li>Las 10 operaciones, con casos borde: <span class="m">sra</span> de negativos, <span class="m">slt</span> vs <span class="m">sltu</span>, shifts mayores a 31</li>
-            <li>Forwarding desde EX/MEM y desde MEM/WB</li>
-            <li>Si los dos aplican, gana EX/MEM (el dato más nuevo)</li>
-            <li>beq/bne tomados y no tomados</li>
-            <li>jal y jalr: destino correcto y bit 0 en cero en jalr</li>
+            <li class="ok">Las 10 operaciones, con casos borde: <span class="m">sra</span> de negativos, <span class="m">slt</span> vs <span class="m">sltu</span>, shifts mayores a 31 (ALU 2029/2029)</li>
+            <li class="ok"><span class="m">addi</span> con inmediato negativo no se convierte en <span class="m">sub</span> (control 93/93)</li>
+            <li class="ok">Forwarding desde EX/MEM y desde MEM/WB; si los dos aplican, gana EX/MEM (2015/2015)</li>
+            <li class="ok">beq/bne tomados y no tomados, con operandos forwardeados</li>
+            <li class="ok">jal y jalr: destino correcto, bit 0 en cero en jalr y PC+4 forwardeado (etapa 60/60)</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
             <li>rtl/cpu/alu.v</li>
             <li>rtl/cpu/alu_control.v</li>
             <li>rtl/cpu/forwarding_unit.v</li>
-            <li>rtl/cpu/ex_stage.v</li>
-            <li>rtl/cpu/ex_mem_reg.v</li>
+            <li>rtl/cpu/ex_stage.v (incluye el latch EX/MEM)</li>
+            <li>tb/cpu/*_tb.v (uno por módulo) · docs/etapa_ex.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
             <li>¿Por qué EX/MEM tiene prioridad sobre MEM/WB?</li>
@@ -259,10 +259,10 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase cur">
       <div class="num">4</div>
       <div class="body">
-        <div class="title"><h3>Etapa MEM</h3><span class="pill">semana 2</span></div>
+        <div class="title"><h3>Etapa MEM</h3><span class="pill now">siguiente</span></div>
         <p class="goal">Segunda BRAM, la de datos, inicializada con la secuencia 0, 1, 2… Los stores escriben solo los bytes que corresponden.</p>
         <div class="cols">
           <div><h4>El testbench demuestra</h4><ul class="chk">
