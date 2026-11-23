@@ -1,161 +1,172 @@
-# TP1 — ALU
+# TP Final — Procesador RISC-V segmentado con Debug Unit por UART
 
-ALU de ancho parametrizable en Verilog, con una demo para la Basys3
-(`alu_top`) que carga operandos y opcode por switches/botones y muestra el
-resultado en LEDs. Target: Digilent Basys3 (`xc7a35tcpg236-1`).
+Arquitectura de Computadoras 2026 · FCEFyN, Universidad Nacional de Córdoba.
 
-Este TP es la base del TP2 (UART): ver [Contrato para TPs futuros](#contrato-para-tps-futuros)
-más abajo antes de integrarlo en otro diseño.
+Procesador RISC-V (subconjunto RV32I) con un pipeline de 5 etapas, implementado en
+Verilog sobre una Digilent **Basys3** (Artix-7 `xc7a35tcpg236-1`). Una **Debug
+Unit** se comunica por UART con la PC, y una **interfaz en Python** permite cargar
+programas, ejecutarlos en modo continuo o paso a paso y ver el estado interno del
+procesador.
 
-## Uso
+| | |
+|---|---|
+| Pipeline | IF · ID · EX · MEM · WB, con forwarding, stall load-use y flush de saltos |
+| Instrucciones | `add sub sll srl sra and or xor slt sltu` · `addi andi ori xori slti sltiu slli srli srai` · `lb lh lw lbu lhu` · `sb sh sw` · `beq bne` · `jal jalr` · `lui` · HALT (`ebreak`) |
+| Reloj | 85 MHz (Clock Wizard). Frecuencia máxima post-síntesis: 90,5 MHz |
+| Verificación | Un testbench autoverificable por módulo, y 28 programas comparados contra un modelo de referencia en simulación y en la placa |
+| Recursos | 2598 LUT (12,5 %) · 1683 FF (4 %) · 2 BRAM36 |
 
-Cloná el repo y abrí `TP_1_ALU.xpr` directo en Vivado 2024.2 (Windows o
-Linux) — el proyecto usa rutas relativas (`$PPRDIR/rtl/...`), así que
-funciona igual en cualquier máquina, no hace falta reconfigurar nada.
+## Arquitectura
+
+```
+                ┌──────────────────────────── cpu_top ────────────────────────────┐
+ instr_mem ──►  │  IF ─► IF/ID ─► ID ─► ID/EX ─► EX ─► EX/MEM ─► MEM ─► MEM/WB ─► WB │
+ (BRAM)         │         ▲         │  banco de    │ ALU, forwarding,   data_mem      │
+                │         │         │  registros   │ decisión de salto  (BRAM)        │
+                │      flush/stall ◄┘  hazard unit  └─► branch_taken ─► PC             │
+                └───────────────────────▲─────────────────────────────────────────────┘
+                                        │ cpu_en · carga del programa · registros, latches, memoria
+ PC (Python) ◄── USB-UART 115200 ──► debug_unit
+```
+
+- **Saltos:** se resuelven en EX con *predict not-taken*. Un salto tomado cuesta 2
+  ciclos. `beq` y `bne` usan un comparador de igualdad propio.
+- **Riesgos de datos:**
+  - forwarding desde EX/MEM y MEM/WB;
+  - bypass en el banco de registros;
+  - un ciclo de stall para load-use.
+- **Memorias:** BRAM True Dual Port de 1024 × 32. El puerto A es del procesador y el
+  B de la Debug Unit, así que el programa se carga sin resintetizar.
+- **HALT:** cuando el `ebreak` llega a WB, la Debug Unit baja el enable en el mismo
+  ciclo y el pipeline queda vacío.
+- **Sin tocar el reloj:** el paso a paso se hace con *clock enable*; no hay clock
+  gating.
+
+## Protocolo de la Debug Unit
+
+| Comando | Efecto | Respuesta |
+|---|---|---|
+| `L` N (2 bytes) + N palabras | Carga el programa | `K` |
+| `R` | Reset del procesador (la memoria de datos se conserva) | `K` |
+| `C` | Ejecuta hasta HALT; cualquier byte lo pausa | volcado |
+| `S` | Ejecuta un ciclo | volcado |
+| `D` | Volcado sin ejecutar | volcado |
+| `I` | Relee el programa cargado | `I` + N + palabras |
+
+El **volcado** contiene, en palabras de 32 bits little-endian:
+- PC, ciclos y estado;
+- los 32 registros;
+- los 4 latches (16 palabras);
+- los pares (dirección, dato) de la memoria de datos escrita por el programa.
 
 ## Estructura
 
 ```
-TP_1_ALU/
-  TP_1_ALU.xpr   proyecto Vivado (trackeado en git)
-  docs/          enunciado del TP
-  rtl/           alu.v (nucleo), alu_top.v (wrapper de demo para Basys3)
-  tb/            testbenches (ver "Simulacion")
-  constraints/   basys3.xdc
-  scripts/       build_and_sim.tcl (regenera el .xpr si hace falta, ver mas abajo)
+rtl/cpu/       etapas del pipeline (cada una con su latch), ALU, control, hazard,
+               forwarding, banco de registros, cpu_top.v
+rtl/debug/     debug_unit.v
+rtl/top/       top.v (Clock Wizard) y top_core.v (UART + Debug Unit + CPU + display)
+rtl/uart/      UART (reutilizada del TP2)
+rtl/board/     prueba temprana en la placa, sin Debug Unit
+tb/            testbenches autoverificables
+sw/            ensamblador, modelo de referencia (ISS), generador de programas,
+               CLI e interfaz gráfica
+programs/      programas de prueba (.s) y sus resultados esperados
+constraints/   basys3_top.xdc
+coe/           contenido inicial de las memorias
+synth/         medición de timing y reportes del camino crítico
+docs/          una página por etapa, Debug Unit y timing; informe (Word)
+scripts/       sim.sh, run_programs.sh, svg_a_png.sh
+project_final/ proyecto de Vivado
 ```
 
-Lo que NO está en git (se regenera solo al abrir/compilar el proyecto):
-`TP_1_ALU.cache/`, `TP_1_ALU.hw/`, `TP_1_ALU.ip_user_files/`,
-`TP_1_ALU.sim/`, `.Xil/`, `*.jou`, `*.log`.
+`README_TP1.md`, `TP_1_ALU.*` y `legacy/` son de los trabajos prácticos anteriores.
 
-## `alu.v` — interfaz
+## Uso
 
-```verilog
-module alu #(
-    parameter WIDTH = 32
-) (
-    input  wire [WIDTH-1:0] a,
-    input  wire [WIDTH-1:0] b,
-    input  wire [5:0]       op,
-    output reg  [WIDTH-1:0] result,
-    output wire              zero,
-    output reg               carry_out,
-    output reg               overflow
-);
-```
+### Requisitos
 
-Puramente combinacional. `WIDTH` es parametrizable (la demo `alu_top` la
-instancia con `WIDTH=8`; los testbenches del núcleo usan `WIDTH=32`).
+- **Vivado 2022.2.** Hace falta esta versión por los IP de memoria y de reloj.
+- **Python 3** con `pip install pyserial`.
 
-Opcodes (`op[5:0]`, estilo MIPS funct):
+### Placa
 
-| Mnemonico | Valor       | Operacion                          |
-|-----------|-------------|-------------------------------------|
-| `OP_ADD`  | `6'b100000` | `result = a + b`                    |
-| `OP_SUB`  | `6'b100010` | `result = a - b`                    |
-| `OP_AND`  | `6'b100100` | `result = a & b`                    |
-| `OP_OR`   | `6'b100101` | `result = a \| b`                   |
-| `OP_XOR`  | `6'b100110` | `result = a ^ b`                    |
-| `OP_SRA`  | `6'b000011` | `result = a >>> b[log2(WIDTH)-1:0]` (aritmetico, extiende signo) |
-| `OP_SRL`  | `6'b000010` | `result = a >> b[log2(WIDTH)-1:0]`  (logico, rellena con 0) |
-| `OP_NOR`  | `6'b100111` | `result = ~(a \| b)`                |
-| otro      | —           | `result = 0`                        |
-
-Flags:
-- `zero`: `result == 0`.
-- `carry_out`: solo tiene sentido para `ADD`/`SUB`. Para `ADD` es el carry
-  aritmetico normal. Para `SUB` es el bit alto de la resta sin signo
-  `{1'b0,a} - {1'b0,b}` (o sea, se activa cuando `a < b` sin signo — un
-  "borrow", no el carry invertido estilo x86). Para el resto de las
-  operaciones queda en 0.
-- `overflow`: overflow aritmetico con signo en `ADD`/`SUB` (0 en el resto).
-- El shift amount para `SRL`/`SRA` sale de los bits bajos de `b`
-  (`b[$clog2(WIDTH)-1:0]`), no hay rango invalido posible.
-
-## `alu_top.v` — wrapper de demo (Basys3)
-
-Registra A, B y Op por separado; cada boton confirma que el valor actual de
-los switches se cargue en su registro. No tiene reset ni debounce (ver
-"Limitaciones conocidas").
-
-```
-sw_data[7:0] --+--(btn_load_a)--> reg_a[7:0]  --\
-               \--(btn_load_b)--> reg_b[7:0]  ---> alu (WIDTH=8) --> led_result[7:0] + flags
-sw_op[5:0] ------(btn_load_op)--> reg_op[5:0] --/
-```
-
-### Mapeo de pines (`constraints/basys3.xdc`)
-
-| Señal           | Pines Basys3     |
-|-----------------|------------------|
-| `clk`           | `W5` (100 MHz)   |
-| `sw_data[7:0]`  | SW0–SW7          |
-| `sw_op[5:0]`    | SW8–SW13         |
-| `btn_load_a`    | BTNU             |
-| `btn_load_b`    | BTNL             |
-| `btn_load_op`   | BTNR             |
-| `led_result[7:0]` | LED0–LED7      |
-| `led_zero`      | LED8             |
-| `led_carry`     | LED9             |
-| `led_overflow`  | LED10            |
-
-## Simulación
-
-Un solo simulation set de Vivado (`sim_1`, top `alu_tb_simple`), archivo
-único y autocontenido (`tb/alu_tb_simple.v`, sin includes ni tasks
-compartidas): aplica una docena de casos fijos sobre `alu.v` (carry/borrow
-y overflow en ADD/SUB, patrones de bits en AND/OR/XOR/NOR, SRL vs SRA) y
-compara contra valores esperados escritos a mano en cada `check(...)`.
-
-Para correrla: abrí el `.xpr`, **Run Simulation → Run Behavioral
-Simulation**. También se puede correr suelta con iverilog desde `tb/`:
+1. Abrir `project_final/project_final.xpr`. El top es `top` y el único constraint
+   habilitado es `constraints/basys3_top.xdc`.
+2. *Generate Bitstream* → *Program Device* → apretar **BTNC** (reset).
+3. Desde la PC:
 
 ```bash
-iverilog -o sim.out ../rtl/alu.v alu_tb_simple.v && vvp sim.out
+python sw/debug_cli.py puertos                        # ver el puerto de la placa
+python sw/debug_gui.py                                # interfaz gráfica
+python sw/debug_cli.py -p COM3 cargar programs/ejemplo.hex
+python sw/debug_cli.py -p COM3 paso 5                 # 5 ciclos
+python sw/debug_cli.py -p COM3 correr                 # hasta HALT
+python sw/debug_cli.py -p COM3 verificar "programs/*.s" "programs/random/*.s"
 ```
 
-### Regenerar el `.xpr` (batch, sin GUI)
+En la placa, el display muestra el PC. LED15 indica HALT, LED14 que está corriendo y
+LED13 que está cargando.
 
-Normalmente no hace falta — alcanza con abrir `TP_1_ALU.xpr` ya
-commiteado. `scripts/build_and_sim.tcl` sirve si el proyecto se corrompe o
-para validar en batch que todo sigue compilando y simulando bien (es
-literalmente cómo se generó el `.xpr` que está en el repo):
+### Programas
 
 ```bash
-source /ruta/a/Vivado/2024.2/settings64.sh   # settings64.bat en Windows
-cd tps/TP_1_ALU
-vivado -mode batch -source scripts/build_and_sim.tcl -tclargs "$(pwd)"
+python sw/asm.py programs/mi_prog.s     # -> .hex, .bin, .lst
+python sw/iss.py programs/mi_prog.s     # resultados esperados (.exp, .trc, .sto)
 ```
 
-## Síntesis / implementación
+El ensamblador acepta nombres ABI (`zero`, `ra`, `sp`, `t0`…), etiquetas y las
+pseudo-instrucciones `nop mv not neg j ret li halt`.
 
-Corridas verificadas sobre este diseño: síntesis y bitstream completos sin
-critical warnings, timing cumplido a 100MHz (`All user specified timing
-constraints are met`), utilización mínima (69 LUTs de 20800).
+### Simulación (desde la terminal)
 
-## Limitaciones conocidas
+```bash
+scripts/sim.sh ex_stage_tb                 # un testbench
+scripts/run_programs.sh                    # los 28 programas en cpu_top_tb
+TB=top_core_tb scripts/run_programs.sh     # los 28, por UART y la Debug Unit
+```
 
-- `btn_load_a/b/op` no tienen debounce ni sincronizador de entrada. Un
-  toque de botón real puede rebotar y disparar varias cargas seguidas del
-  mismo valor (inofensivo, es idempotente), o quedar metaestable un ciclo
-  aislado. Para esta demo no genera fallas funcionales, pero es lo primero
-  a sospechar si algo se comporta raro al tocar los botones en la placa.
-- No hay reset: al energizar la placa, `reg_a`/`reg_b`/`reg_op` arrancan en
-  un valor no inicializado hasta la primera carga por botón.
+Antes de la primera simulación hay que hacer *Generate Output Products* de los IP en
+Vivado. Si Vivado no está en `/c/Xilinx/Vivado/2022.2`, exportar `VIVADO=<ruta>`.
 
-## Contrato para TPs futuros
+## Verificación
 
-El TP2 (UART) va a partir de este proyecto. Lo reutilizable en principio:
+- **Testbenches por módulo:** cada uno imprime `TEST PASSED: N checks, 0 errors`.
+- **Modelo de referencia:** `sw/iss.py` ejecuta el programa de a una instrucción, sin
+  pipeline. Para cada programa el procesador tiene que reproducir:
+  - cada escritura de registro y cada store, en orden;
+  - el estado final;
+  - la cantidad exacta de ciclos.
+- **Programas:** 8 escritos a mano (ALU, forwarding, load-use, saltos, memoria…) y 20
+  aleatorios que combinan todos los riesgos.
+- **Sistema completo:** `top_core_tb` maneja la placa desde afuera, con un modelo de
+  UART. Se validó con pruebas de mutación: el testbench detecta las 7 fallas
+  introducidas a propósito.
+- **En la placa:** los 28 programas pasan a 85 MHz.
 
-- **`alu.v`** tal cual, como núcleo combinacional parametrizable en
-  `WIDTH` — se puede instanciar con otro ancho o conectar a otro
-  datapath sin tocarlo.
-- La estructura de carpetas (`docs/`, `rtl/`, `tb/`, `constraints/`,
-  `scripts/`) y la convención de commitear el `.xpr` (rutas relativas,
-  `$PPRDIR/...`) pero ignorar el cache/build que genera Vivado
-  (`.gitignore` en `tps/`).
+## Timing
 
-Lo que **no** es reusable sin cambios: `alu_top.v` es un wrapper de demo
-pensado solo para probar la ALU sola en la Basys3 (switches como entrada
-directa) — el UART va a necesitar su propio wrapper/datapath, no éste.
+| | Antes | Después |
+|---|---|---|
+| fmax post-síntesis | 64,9 MHz | 90,5 MHz |
+| Reloj en la placa | 50 MHz | 85 MHz (WNS +0,59 ns) |
+
+El camino crítico original era un load seguido de un salto que usa el dato: lectura
+de memoria → forwarding → resta en la ALU → decisión de salto → flush de ID/EX. Se
+acortó con dos cambios:
+- un comparador de igualdad para los saltos;
+- un flush que solo limpia los bits de control.
+
+Resolver los saltos en ID se evaluó y se descartó: daba −7,8 % de ciclos, pero a
+costa de un camino más largo. Detalle en `docs/timing.html` y en el capítulo 10 del
+informe.
+
+## Documentación
+
+- `docs/informe/Informe_TP_Final.docx`: el informe completo.
+- `docs/pipeline_diagrama.html` y `docs/tabla_control.html`: el diagrama general y
+  la tabla de control.
+- `docs/etapa_{if,id,ex,mem,wb}.html`, `docs/debug_unit.html` y `docs/timing.html`:
+  una página por bloque, con su esquemático, el Verilog clave y las preguntas para
+  la defensa.
+- `docs/plan_de_trabajo.html`: el plan y el estado por fase.

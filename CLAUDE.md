@@ -19,8 +19,8 @@ portada) y preparar la defensa.
   regresión completa (ver "Verificar") antes de dar el cambio por bueno.
 - **Preguntar antes de decisiones de diseño grandes.** Primero se propone (tabla o
   esquema) y se aprueba; después se escribe el código.
-- **No tocar** los archivos del TP1 que están en la raíz (`README.md`, `TP_1_ALU.*`)
-  ni `legacy/`. Tampoco commitear `TP_1_ALU.srcs/.../uart_top.dcp`: Vivado lo
+- **No tocar** los archivos del TP1 que están en la raíz (`README_TP1.md`,
+  `TP_1_ALU.*`) ni `legacy/`. El `README.md` es el del TP Final (23/11). Tampoco commitear `TP_1_ALU.srcs/.../uart_top.dcp`: Vivado lo
   modifica solo.
 - **Informe Word** (`docs/informe/Informe_TP_Final.docx`): **nunca regenerarlo
   desde cero**, porque tiene capturas pegadas a mano. Solo se agregan secciones o
