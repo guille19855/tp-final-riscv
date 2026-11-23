@@ -5,6 +5,8 @@
 // ~68 MHz (analisis post-sintesis del 17/11). El Clock Wizard (IP clk_wiz_50,
 // un MMCM) genera 50 MHz limpios a partir de los 100 MHz: no es clock gating,
 // es otro reloj generado por hardware dedicado. Todo el diseno usa clk_50.
+// Fase 10: el IP pasa a ser clk_wiz_cpu (85 MHz, el mismo de top.v); la
+// prueba anda igual (el antirrebote y el display tienen margen de sobra).
 //
 // locked = 1 cuando el MMCM se engancho y la salida es estable; mientras
 // tanto todo queda en reset.
@@ -23,7 +25,7 @@ module board_test_top (
 
     wire clk_50, locked;
 
-    clk_wiz_50 u_clk (
+    clk_wiz_cpu u_clk (
         .clk_in1  (clk),
         .clk_out1 (clk_50),
         .locked   (locked)

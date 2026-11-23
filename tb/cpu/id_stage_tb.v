@@ -107,12 +107,18 @@ module id_stage_tb;
         end
     endtask
 
-    // ID/EX quedo como burbuja (todo en 0)
+    // ID/EX quedo como burbuja. Fase 10: la burbuja solo pone en 0 lo que
+    // tiene efecto (branch/jal/jalr, mem_read/mem_write, reg_write, halt) y
+    // los numeros de registro; los datos (pc, operandos, imm, alu_op...) quedan
+    // con valores viejos que no importan.
+    wire [6:0] efectos = {id_ex_branch, id_ex_jal, id_ex_jalr, id_ex_mem_read,
+                          id_ex_mem_write, id_ex_reg_write, id_ex_halt};
     task expect_bubble(input [8*44-1:0] what);
         begin
-            expect(ctrl, C_NOP, what);
+            expect(efectos, 0, what);
             expect(id_ex_rd, 0, what);
-            expect(id_ex_pc, 0, what);
+            expect(id_ex_rs1, 0, what);
+            expect(id_ex_rs2, 0, what);
         end
     endtask
 

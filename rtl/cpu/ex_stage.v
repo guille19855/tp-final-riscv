@@ -3,7 +3,7 @@
 // Recibe la instruccion del latch ID/EX y:
 //   1. elige los operandos correctos  (forwarding_unit + muxes de forwarding)
 //   2. calcula                        (alu_control + alu)
-//   3. decide si salta y adonde       (sumador PC+imm, zero de la ALU)
+//   3. decide si salta y adonde       (sumador PC+imm, comparador a == b)
 //   4. guarda todo en EX/MEM para la etapa MEM del ciclo siguiente
 //
 // Orden de los muxes (importa):
@@ -18,7 +18,8 @@
 // instruccion de adelante y tiene que salir forwardeado.
 //
 // SALTOS (se resuelven aca, decision v1; predict not-taken):
-//   beq/bne: la ALU resta (ALUOp = SUB) y zero dice si rs1 == rs2.
+//   beq/bne: comparador de igualdad sobre los operandos forwardeados
+//            (Fase 10; antes se usaba el zero de la ALU, ver mas abajo).
 //   branch_taken = (branch & condicion) | jal | jalr
 //   destino:  beq/bne/jal -> PC + imm   (sumador propio, el "Add" del datapath)
 //             jalr        -> (rs1 + imm) & ~1   (lo calcula la ALU; RISC-V
@@ -127,7 +128,7 @@ module ex_stage (
 
     wire [3:0]  alu_ctrl;
     wire [31:0] alu_result;
-    wire        alu_zero;
+    wire        alu_zero;   // ya no se usa (ver Saltos); queda en la ALU por su TB
 
     alu_control actrl (
         .alu_op   (id_ex_alu_op),
@@ -149,8 +150,18 @@ module ex_stage (
     // ------------------------------------------------------------------
     wire [31:0] pc_imm = id_ex_pc + id_ex_imm;           // sumador "Add"
 
-    // beq (funct3 = 000) salta si son iguales, bne (001) si son distintos
-    wire branch_cond = (id_ex_funct3 == `F3_BNE) ? ~alu_zero : alu_zero;
+    // beq (funct3 = 000) salta si son iguales, bne (001) si son distintos.
+    //
+    // Fase 10 (timing): la igualdad sale de un COMPARADOR PROPIO sobre los
+    // operandos ya forwardeados, no del zero de la ALU. Antes el camino era
+    //   forwarding -> mux ALUSrcB -> resta de 32 bits -> mux de resultado
+    //   -> zero (OR de 32 bits) -> branch_taken
+    // y era el camino critico del procesador. a == b es solo XOR bit a bit +
+    // un arbol de AND (unos 3 niveles de LUT) y no pasa por el mux ALUSrcB
+    // (los branches siempre comparan rs1 con rs2). La ALU sigue haciendo la
+    // resta (ALUOp = SUB) pero su resultado ya no se usa para decidir.
+    wire operands_eq = (a_fwd == b_fwd);
+    wire branch_cond = (id_ex_funct3 == `F3_BNE) ? ~operands_eq : operands_eq;
 
     assign branch_taken  = (id_ex_branch & branch_cond) | id_ex_jal | id_ex_jalr;
     assign branch_target = id_ex_jalr ? (alu_result & ~32'd1) : pc_imm;

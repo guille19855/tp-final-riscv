@@ -374,8 +374,11 @@ module top_core_tb;
         if (errors == err0) $display("OK    continuo: 32 registros iguales al modelo");
         check_used_mem("continuo");
         check(fixw[38], 0, "vacio: IF/ID invalido", 0);
-        check(fixw[44], 0, "vacio: ID/EX es burbuja", 0);
-        check(fixw[47], 0, "vacio: EX/MEM es burbuja", 0);
+        // burbuja = bits de control con efecto en 0 (los datos quedan viejos):
+        // ID/EX: branch jal jalr mem_read mem_write reg_write [8:3], halt [0]
+        // EX/MEM: mem_read mem_write reg_write [5:3], halt [0]
+        check(fixw[44] & 32'h1F9, 0, "vacio: ID/EX es burbuja", 0);
+        check(fixw[47] & 32'h039, 0, "vacio: EX/MEM es burbuja", 0);
         check(fixw[50][0], 1, "vacio: el ebreak esta en MEM/WB", 0);
         check_latches("fin");
         $display("Ciclos: %0d  Instrucciones: %0d  CPI = %0.3f", fixw[1],

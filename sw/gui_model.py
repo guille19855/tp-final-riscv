@@ -40,22 +40,27 @@ def load_program(path):
 # ---------------------------------------------------------------------------
 # Burbujas y etapas
 # ---------------------------------------------------------------------------
-# Las burbujas son latches en 0 (reset/flush/stall los ponen asi). Para no
-# confundir una burbuja con una instruccion real en la direccion 0:
-#   IF/ID : tiene el bit valid.
-#   ID/EX : pc4 vale pc+4, nunca 0 para una instruccion real.
-#   EX/MEM, MEM/WB: no guardan el PC; si todo el latch es 0 no tiene ningun
-#           efecto (no escribe nada), se muestra como burbuja.
+# Burbujas (Fase 10): el flush/stall solo pone en 0 los bits de control que
+# tienen efecto; los datos del latch quedan con valores viejos que no importan.
+# Toda instruccion real tiene al menos uno de esos bits en 1 (las que escriben
+# registro, incluido el nop, tienen reg_write; sw mem_write; beq/bne branch;
+# ebreak halt), asi que:
+#   IF/ID : burbuja si valid = 0.
+#   ID/EX : burbuja si branch/jal/jalr/mem_read/mem_write/reg_write/halt = 0.
+#   EX/MEM, MEM/WB: "sin efecto" si no lee/escribe memoria, no escribe
+#           registro y no es halt. Ahi caen las burbujas y tambien los
+#           beq/bne, que ya hicieron todo su trabajo en EX.
 def bubble_ifid(L):
     return not L["IF/ID"]["valid"]
 
 
 def bubble_idex(L):
-    return L["ID/EX"]["pc4"] == 0
+    return not any(L["ID/EX"][n] for n in FLAGS_IDEX)
 
 
-def bubble_word(words):
-    return all(w == 0 for w in words)
+def no_effect(L, latch):
+    names = FLAGS_EXMEM if latch == "EX/MEM" else FLAGS_MEMWB
+    return not any(L[latch][n] for n in names)
 
 
 def stage_marks(d):
@@ -84,7 +89,7 @@ def _flags(fields, names):
 
 def latch_lines(d):
     """-> [(nombre, texto, es_burbuja)] para los 4 latches."""
-    L, w = d.latches, d.latch_words
+    L = d.latches
     out = []
 
     f = L["IF/ID"]
@@ -107,23 +112,20 @@ def latch_lines(d):
                     f"aluop={ALU_OP[f['alu_op']]}  wb={WB_SEL[f['wb_sel']]}  "
                     f"[{_flags(f, FLAGS_IDEX)}]", False))
 
+    # EX/MEM y MEM/WB sin efecto: se muestran los valores igual, en gris
     f = L["EX/MEM"]
-    if bubble_word(w[10:13]):
-        out.append(("EX/MEM", "(burbuja)", True))
-    else:
-        out.append(("EX/MEM",
-                    f"result={f['result']:08x}  rs2_data={f['rs2_data']:08x}  "
-                    f"rd=x{f['rd']}  f3={f['funct3']}  wb={WB_SEL[f['wb_sel']]}  "
-                    f"[{_flags(f, FLAGS_EXMEM)}]", False))
+    ne = no_effect(L, "EX/MEM")
+    out.append(("EX/MEM", ("(sin efecto) " if ne else "") +
+                f"result={f['result']:08x}  rs2_data={f['rs2_data']:08x}  "
+                f"rd=x{f['rd']}  f3={f['funct3']}  wb={WB_SEL[f['wb_sel']]}  "
+                f"[{_flags(f, FLAGS_EXMEM)}]", ne))
 
     f = L["MEM/WB"]
-    if bubble_word(w[13:16]):
-        out.append(("MEM/WB", "(burbuja)", True))
-    else:
-        out.append(("MEM/WB",
-                    f"result={f['result']:08x}  read_data={f['read_data']:08x}  "
-                    f"rd=x{f['rd']}  f3={f['funct3']} addr_lo={f['addr_lo']}  "
-                    f"wb={WB_SEL[f['wb_sel']]}  [{_flags(f, FLAGS_MEMWB)}]", False))
+    ne = no_effect(L, "MEM/WB")
+    out.append(("MEM/WB", ("(sin efecto) " if ne else "") +
+                f"result={f['result']:08x}  read_data={f['read_data']:08x}  "
+                f"rd=x{f['rd']}  f3={f['funct3']} addr_lo={f['addr_lo']}  "
+                f"wb={WB_SEL[f['wb_sel']]}  [{_flags(f, FLAGS_MEMWB)}]", ne))
     return out
 
 

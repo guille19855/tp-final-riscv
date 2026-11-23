@@ -61,12 +61,21 @@ check(lines[2][2] and lines[3][2], "EX/MEM y MEM/WB en 0 -> burbuja")
 
 lw2 = list(lw)
 lw2[3] = 0                                           # IF/ID invalido (flush)
-lw2[4], lw2[5] = 0, 0                                # ID/EX burbuja (pc4 = 0)
+lw2[4], lw2[5] = 0x20, 0x24                          # ID/EX burbuja con datos viejos:
+lw2[9] = (3 << 22) | (7 << 14) | (3 << 9)            #   rs2/funct3/alu_op viejos, sin efectos
 lw2[10], lw2[12] = 0, 1 << 4                         # EX/MEM: sw con resultado 0
 check(gm.stage_marks(mk_dump(pc=12, latches=lw2)) == {12: "IF"},
-      "IF/ID invalido y ID/EX con pc4=0 no se marcan")
+      "IF/ID invalido y ID/EX sin bits de efecto (aunque tenga pc) no se marcan")
+check(gm.latch_lines(mk_dump(latches=lw2))[1][2], "ID/EX con datos viejos y sin efectos = burbuja")
 check(not gm.latch_lines(mk_dump(latches=lw2))[2][2],
       "EX/MEM con result=0 pero mem_write NO es burbuja")
+lw4 = [0] * 16
+lw4[10], lw4[12] = 0x1234, (5 << 9) | (1 << 6)       # EX/MEM: datos viejos, sin efectos
+lw4[13], lw4[15] = 0x40, (1 << 3)                    # MEM/WB: reg_write
+ln = gm.latch_lines(mk_dump(latches=lw4))
+check(ln[2][2] and ln[2][1].startswith("(sin efecto)") and "00001234" in ln[2][1],
+      "EX/MEM sin efectos: gris pero muestra los valores")
+check(not ln[3][2], "MEM/WB con reg_write tiene efecto")
 check(gm.stage_marks(mk_dump(pc=8, done=True, latches=lw)) == {8: "ID", 0: "EX"},
       "con HALT no se marca IF")
 lw3 = list(lw)

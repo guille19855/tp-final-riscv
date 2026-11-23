@@ -157,35 +157,29 @@ module id_stage (
     // Burbuja: la instruccion de ID no pasa a EX
     wire bubble = flush_id_ex | ~if_id_valid;
 
+    // Fase 10 (timing): la burbuja solo pone en 0 lo que tiene EFECTO.
+    // Antes el flush (branch_taken, que sale del camino critico) iba al reset
+    // sincronico de las ~190 FF del latch; ese fanout costaba ~1,6 ns de
+    // ruteo. Una burbuja no salta, no lee ni escribe memoria, no escribe
+    // registro y no es halt: con esos bits en 0 (y rs1/rs2/rd en 0 para que
+    // el forwarding y el load-use no vean dependencias) no hace nada, y los
+    // datos (pc, operandos, imm, alu_op...) pueden quedar con cualquier
+    // valor. El RESET sigue llevando TODO a 0 (indicacion del profesor).
+    //
+    // a) Control con efecto + numeros de registro: reset o burbuja -> 0
     always @(posedge clk) begin
         if (reset || (en && bubble)) begin
-            id_ex_pc        <= 32'd0;
-            id_ex_pc4       <= 32'd0;
-            id_ex_rs1_data  <= 32'd0;
-            id_ex_rs2_data  <= 32'd0;
-            id_ex_imm       <= 32'd0;
             id_ex_rs1       <= 5'd0;
             id_ex_rs2       <= 5'd0;
             id_ex_rd        <= 5'd0;
-            id_ex_funct3    <= 3'd0;
-            id_ex_funct7b5  <= 1'b0;
-            id_ex_alu_src_a <= 1'b0;
-            id_ex_alu_src_b <= 1'b0;
-            id_ex_alu_op    <= `ALUOP_ADD;
             id_ex_branch    <= 1'b0;
             id_ex_jal       <= 1'b0;
             id_ex_jalr      <= 1'b0;
             id_ex_mem_read  <= 1'b0;
             id_ex_mem_write <= 1'b0;
             id_ex_reg_write <= 1'b0;
-            id_ex_wb_sel    <= `WB_ALU;
             id_ex_halt      <= 1'b0;
         end else if (en) begin
-            id_ex_pc        <= if_id_pc;
-            id_ex_pc4       <= if_id_pc4;
-            id_ex_rs1_data  <= rs1_data;
-            id_ex_rs2_data  <= rs2_data;
-            id_ex_imm       <= imm;
             // Si la instruccion no lee rs1/rs2 se guarda 0 (x0): asi el
             // forwarding de EX no "ve" una dependencia que no existe.
             id_ex_rs1       <= usa_rs1 ? rs1 : 5'd0;
@@ -193,19 +187,43 @@ module id_stage (
             // Si no escribe registro, rd = 0: idem para el forwarding y el
             // hazard load-use del ciclo siguiente.
             id_ex_rd        <= c_reg_write ? rd : 5'd0;
-            id_ex_funct3    <= funct3;
-            id_ex_funct7b5  <= if_id_instr[30];
-            id_ex_alu_src_a <= c_alu_src_a;
-            id_ex_alu_src_b <= c_alu_src_b;
-            id_ex_alu_op    <= c_alu_op;
             id_ex_branch    <= c_branch;
             id_ex_jal       <= c_jal;
             id_ex_jalr      <= c_jalr;
             id_ex_mem_read  <= c_mem_read;
             id_ex_mem_write <= c_mem_write;
             id_ex_reg_write <= c_reg_write;
-            id_ex_wb_sel    <= c_wb_sel;
             id_ex_halt      <= c_halt;
+        end
+    end
+
+    // b) Datos y control sin efecto propio: solo el reset los pone en 0.
+    //    En una burbuja se cargan igual (el valor no importa).
+    always @(posedge clk) begin
+        if (reset) begin
+            id_ex_pc        <= 32'd0;
+            id_ex_pc4       <= 32'd0;
+            id_ex_rs1_data  <= 32'd0;
+            id_ex_rs2_data  <= 32'd0;
+            id_ex_imm       <= 32'd0;
+            id_ex_funct3    <= 3'd0;
+            id_ex_funct7b5  <= 1'b0;
+            id_ex_alu_src_a <= 1'b0;
+            id_ex_alu_src_b <= 1'b0;
+            id_ex_alu_op    <= `ALUOP_ADD;
+            id_ex_wb_sel    <= `WB_ALU;
+        end else if (en) begin
+            id_ex_pc        <= if_id_pc;
+            id_ex_pc4       <= if_id_pc4;
+            id_ex_rs1_data  <= rs1_data;
+            id_ex_rs2_data  <= rs2_data;
+            id_ex_imm       <= imm;
+            id_ex_funct3    <= funct3;
+            id_ex_funct7b5  <= if_id_instr[30];
+            id_ex_alu_src_a <= c_alu_src_a;
+            id_ex_alu_src_b <= c_alu_src_b;
+            id_ex_alu_op    <= c_alu_op;
+            id_ex_wb_sel    <= c_wb_sel;
         end
     end
 
