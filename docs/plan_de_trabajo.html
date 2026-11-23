@@ -104,7 +104,7 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
   <span class="eyebrow">TP Final · Arquitectura de Computadoras 2026</span>
   <h1>Plan de trabajo</h1>
   <p class="lead">El procesador se construye etapa por etapa, de izquierda a derecha del diagrama, como sugirió el profesor. Cada etapa se prueba sola con su testbench antes de conectarla con las demás.</p>
-  <p class="m" style="color: var(--muted)">Inicio: lunes 19/10 · Entrega estimada: ~19/11 (fecha a confirmar)</p>
+  <p class="m" style="color: var(--muted)">Inicio: lunes 19/10 · Estado al 23/11: fases 0 a 10 terminadas y verificadas en la placa a 85 MHz; la 11 se evaluó y se descartó; falta cerrar el informe y preparar la defensa.</p>
 </header>
 
 <section aria-label="Avance por etapa">
@@ -112,8 +112,8 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
     <div><b>IF</b><span>búsqueda</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
     <div><b>ID</b><span>decodificación</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
     <div><b>EX</b><span>ejecución</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
-    <div><b>MEM</b><span>memoria</span><span class="st now">siguiente</span></div>
-    <div><b>WB</b><span>escritura</span><span class="st">pendiente</span></div>
+    <div><b>MEM</b><span>memoria</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
+    <div><b>WB</b><span>escritura</span><span class="st" style="color: var(--done); font-weight: 600">terminada</span></div>
   </div>
 </section>
 
@@ -259,177 +259,185 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
       </div>
     </article>
 
-    <article class="phase cur">
+    <article class="phase done">
       <div class="num">4</div>
       <div class="body">
-        <div class="title"><h3>Etapa MEM</h3><span class="pill now">siguiente</span></div>
-        <p class="goal">Segunda BRAM, la de datos, inicializada con la secuencia 0, 1, 2… Los stores escriben solo los bytes que corresponden.</p>
+        <div class="title"><h3>Etapa MEM</h3><span class="pill ok">terminada · testbench 47/47</span></div>
+        <p class="goal">Segunda BRAM, la de datos, inicializada con palabra <i>i</i> = <i>i</i>. Los stores escriben solo sus bytes con el byte write enable; la salida de la BRAM es el campo read_data de MEM/WB.</p>
         <div class="cols">
           <div><h4>El testbench demuestra</h4><ul class="chk">
-            <li>Contenido inicial: palabra <i>i</i> = <i>i</i></li>
-            <li><span class="m">sb</span> y <span class="m">sh</span> escriben el byte correcto (little-endian)</li>
-            <li><span class="m">sw</span> seguido de <span class="m">lw</span> devuelve lo escrito</li>
-            <li>El puerto B lee sin molestar al procesador</li>
+            <li class="ok">Contenido inicial: palabra <i>i</i> = <i>i</i> (el .coe se cargó)</li>
+            <li class="ok"><span class="m">sb</span> y <span class="m">sh</span> escriben solo sus bytes (little-endian)</li>
+            <li class="ok">Los cuatro loads con y sin signo en todas las posiciones</li>
+            <li class="ok"><span class="m">sw</span> seguido de <span class="m">lw</span>, <span class="m">en</span> = 0, puerto B, halt y reset</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
             <li>IP data_mem (True Dual Port, byte write enable)</li>
             <li>coe/data_init.coe</li>
-            <li>rtl/cpu/mem_stage.v</li>
-            <li>rtl/cpu/mem_wb_reg.v</li>
+            <li>rtl/cpu/mem_stage.v (incluye MEM/WB)</li>
+            <li>tb/cpu/mem_stage_tb.v · docs/etapa_mem.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>¿Qué es little-endian y cómo afecta a <span class="m">sb</span>?</li>
+            <li>¿Cómo escribe <span class="m">sb</span> un solo byte?</li>
+            <li>¿Dónde está el campo read_data del latch MEM/WB?</li>
             <li>¿Qué pasa con una dirección desalineada?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">5</div>
       <div class="body">
-        <div class="title"><h3>Etapa WB</h3><span class="pill">semana 2</span></div>
-        <p class="goal">La etapa más corta: extender el dato leído y elegir qué se escribe en el registro destino.</p>
+        <div class="title"><h3>Etapa WB</h3><span class="pill ok">terminada · testbench 13/13</span></div>
+        <p class="goal">Un mux de dos entradas: PC+4 ya viene elegido desde EX y el load ya viene extendido desde MEM. La salida va al banco, al bypass y al forwarding; el halt sale como program_done.</p>
         <div class="cols">
           <div><h4>El testbench demuestra</h4><ul class="chk">
-            <li><span class="m">lb</span> extiende signo, <span class="m">lbu</span> rellena con ceros (lo mismo con <span class="m">lh</span>/<span class="m">lhu</span>)</li>
-            <li>jal y jalr escriben PC+4</li>
-            <li>El aviso de HALT sale cuando ebreak llega a WB</li>
+            <li class="ok">ALU, load (y lb negativo ya extendido), jal con PC+4</li>
+            <li class="ok">sw y burbuja no escriben registro</li>
+            <li class="ok">program_done cuando el ebreak llega a WB</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
             <li>rtl/cpu/wb_stage.v</li>
+            <li>tb/cpu/wb_stage_tb.v · docs/etapa_wb.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>¿Por qué la extensión se hace en WB y no en MEM?</li>
+            <li>¿Por qué el mux es de 2 entradas y no de 3?</li>
+            <li>¿Por qué WB no tiene latch?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">6</div>
       <div class="body">
-        <div class="title"><h3>Ensamblador en Python</h3><span class="pill">semana 3</span></div>
-        <p class="goal">Traduce un archivo <span class="m">.s</span> a código máquina. Va antes de la integración porque los programas de prueba ya se escriben en assembler y no a mano en hexadecimal.</p>
+        <div class="title"><h3>Ensamblador en Python</h3><span class="pill ok">terminado</span></div>
+        <p class="goal">Traduce un <span class="m">.s</span> a código máquina en dos pasadas (etiquetas, después codificación). Con él se escribieron todos los programas de prueba, y su desensamblador lo usa la interfaz.</p>
         <div class="cols">
           <div><h4>Demuestra</h4><ul class="chk">
-            <li>Las 37 instrucciones más <span class="m">halt</span></li>
-            <li>Etiquetas para saltos (calcula el offset solo)</li>
-            <li>Errores claros: línea, instrucción desconocida, inmediato fuera de rango</li>
-            <li>Comparado contra un ensamblador de referencia</li>
-            <li>Genera <span class="m">.coe</span> para simulación y binario para la UART</li>
+            <li class="ok">Las 37 instrucciones, <span class="m">halt</span> y las pseudo nop, mv, not, neg, j, ret, li</li>
+            <li class="ok">Etiquetas para saltos (calcula el offset solo)</li>
+            <li class="ok">Errores con número de línea</li>
+            <li class="ok">Genera .hex, .bin, .lst y .coe</li>
+            <li class="ok">Modelo de referencia (ISS) y generador de programas aleatorios</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>sw/asm.py</li>
-            <li>sw/test_asm.py</li>
+            <li>sw/asm.py · sw/test_asm.py</li>
+            <li>sw/iss.py (modelo de referencia)</li>
+            <li>sw/gen_random.py</li>
             <li>programs/*.s</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
             <li>¿Cómo se codifica un offset de salto tipo B?</li>
+            <li>¿Para qué sirve el ISS si ya tenemos el procesador?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">7</div>
       <div class="body">
-        <div class="title"><h3>Integración</h3><span class="pill">semana 3</span></div>
-        <p class="goal">Las cinco etapas se conectan en <span class="m">cpu_top</span>. Las señales que en los testbenches manejábamos a mano ahora las genera el propio pipeline.</p>
+        <div class="title"><h3>Integración</h3><span class="pill ok">terminada · 28 programas</span></div>
+        <p class="goal">Las cinco etapas se conectan en <span class="m">cpu_top</span>. Cada programa se compara contra el modelo de referencia: cada escritura de registro, cada store, el estado final y los ciclos exactos.</p>
         <div class="cols">
           <div><h4>Programas de prueba</h4><ul class="chk">
-            <li>Sin riesgos: cada instrucción con su resultado esperado</li>
-            <li>Forwarding: dependencias a distancia 1 y 2</li>
-            <li>Load-use</li>
-            <li>Saltos: tomados, no tomados, bucle, jal/jalr</li>
-            <li>Memoria: bytes, medias palabras, palabras</li>
-            <li>Termina en HALT con el pipeline vacío</li>
+            <li class="ok">alu, forwarding, load_use, branches, jumps, memoria, ejemplo, debug_bordes</li>
+            <li class="ok">20 programas aleatorios con dependencias en todas las combinaciones</li>
+            <li class="ok">Ciclos iguales al modelo: instrucciones + 3 + stalls + 2 × saltos tomados</li>
+            <li class="ok">Prueba temprana en la placa con el programa precargado</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
             <li>rtl/cpu/cpu_top.v</li>
             <li>tb/cpu/cpu_top_tb.v</li>
-            <li>programs/test_*.s</li>
+            <li>scripts/run_programs.sh</li>
+            <li>rtl/board/ (prueba temprana)</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>¿Cómo sabés que el resultado es correcto? (resultado esperado calculado aparte)</li>
-            <li>¿Cuál es el CPI de cada programa?</li>
+            <li>¿Cómo sabés que el resultado es correcto? (trazas contra el ISS)</li>
+            <li>¿Cuál es el CPI de cada programa y por qué es mayor que 1?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">8</div>
       <div class="body">
-        <div class="title"><h3>Debug Unit y placa</h3><span class="pill">semana 4</span></div>
-        <p class="goal">Primero se define el protocolo de comandos entre la PC y la FPGA. Después, la FSM que carga el programa, ejecuta en modo continuo o paso a paso y manda el estado. La UART del TP2 se reutiliza a 115200 baudios.</p>
+        <div class="title"><h3>Debug Unit y placa</h3><span class="pill ok">terminada · verificada en la placa</span></div>
+        <p class="goal">Protocolo de comandos de un byte (L, R, C, S, D, I). La FSM carga el programa por el puerto B, ejecuta en continuo o paso a paso con <span class="m">cpu_en</span> y manda PC, ciclos, registros, latches y memoria usada.</p>
         <div class="cols">
           <div><h4>Demuestra</h4><ul class="chk">
-            <li>Protocolo documentado (comandos y formato de respuesta)</li>
-            <li>LOAD escribe el programa sin resintetizar</li>
-            <li>RUN ejecuta hasta HALT</li>
-            <li>STEP avanza un ciclo con <span class="m">cpu_en</span>, sin tocar el clock</li>
-            <li>DUMP manda registros, latches y memoria usada</li>
-            <li>Reprogramar sin apagar la placa</li>
-            <li>Contador de ciclos (sirve para medir CPI)</li>
+            <li class="ok">Carga sin resintetizar y relectura con I</li>
+            <li class="ok">Continuo hasta HALT con el pipeline vacío; un byte lo pausa</li>
+            <li class="ok">Paso a paso con <span class="m">cpu_en</span>, sin tocar el clock</li>
+            <li class="ok">Memoria usada con un mapa de bits en hardware</li>
+            <li class="ok">TB con modelo de UART: 28 programas y 7 mutaciones detectadas</li>
+            <li class="ok">En la placa: los 28 programas pasan</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>docs/protocolo_uart.md</li>
-            <li>rtl/debug/debug_unit.v</li>
-            <li>rtl/top.v</li>
-            <li>constraints/basys3_final.xdc</li>
+            <li>rtl/debug/debug_unit.v · rtl/cpu/dmem_used.v</li>
+            <li>rtl/top/top.v · rtl/top/top_core.v</li>
+            <li>constraints/basys3_top.xdc</li>
+            <li>tb/top/top_core_tb.v · docs/debug_unit.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>¿Hay que vaciar memoria, registros, pipeline o memoria de programa al reprogramar?</li>
-            <li>¿Qué pasa si no hay instrucción de parada?</li>
+            <li>¿Cómo garantizan que el pipeline queda vacío al terminar?</li>
+            <li>¿Qué es la memoria usada y cómo se obtiene?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">9</div>
       <div class="body">
-        <div class="title"><h3>Interfaz en Python</h3><span class="pill">semana 4</span></div>
-        <p class="goal">El enunciado pide ser creativos. La idea base es una pantalla que muestre el pipeline como el diagrama: qué instrucción hay en cada etapa, con los registros que cambiaron resaltados.</p>
+        <div class="title"><h3>Interfaz en Python</h3><span class="pill ok">terminada</span></div>
+        <p class="goal">Una CLI para pruebas automáticas y una GUI en tkinter que muestra el programa con la etapa de cada instrucción, los registros y la memoria con los cambios resaltados, y los latches decodificados.</p>
         <div class="cols">
           <div><h4>Demuestra</h4><ul class="chk">
-            <li>Elegir tipo: GUI o TUI</li>
-            <li>Cargar un .s, ensamblar y mandar</li>
-            <li>Botones o teclas para RUN, STEP y RESET</li>
-            <li>Registros, latches y memoria, con los cambios resaltados</li>
+            <li class="ok">Abrir un .s (lo ensambla) o un .hex y cargarlo</li>
+            <li class="ok">Paso, Paso × N, Correr, Pausa, Reset, Volcado</li>
+            <li class="ok">Marcas IF/ID/EX, cambios resaltados, burbujas en gris</li>
+            <li class="ok"><span class="m">verificar</span>: los 28 programas contra el modelo, en la placa</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>sw/ui.py</li>
-            <li>sw/link.py (pyserial)</li>
+            <li>sw/du_protocol.py (pyserial)</li>
+            <li>sw/debug_cli.py</li>
+            <li>sw/debug_gui.py · sw/gui_model.py</li>
+            <li>sw/test_gui_model.py</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
             <li>¿Cómo interpretás el estado del sistema mientras lo usás?</li>
+            <li>¿Cómo se reconoce una burbuja en un latch?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase done">
       <div class="num">10</div>
       <div class="body">
-        <div class="title"><h3>Timing y frecuencia máxima</h3><span class="pill">semana 5</span></div>
-        <p class="goal">Encontrar el camino crítico con los reportes de Vivado, subir la frecuencia hasta el límite y generarla con el Clock Wizard.</p>
+        <div class="title"><h3>Timing y frecuencia máxima</h3><span class="pill ok">terminada · 85 MHz</span></div>
+        <p class="goal">Camino crítico medido y acortado con un comparador de igualdad para los saltos y una burbuja solo de control. f<sub>max</sub> post-síntesis 64,9 → 90,5 MHz; la placa corre a 85 MHz con el Clock Wizard.</p>
         <div class="cols">
           <div><h4>Demuestra</h4><ul class="chk">
-            <li>Camino crítico identificado</li>
-            <li>Análisis de skew</li>
-            <li>Frecuencia máxima con WNS ≥ 0</li>
-            <li>Simulación post-síntesis</li>
-            <li>Clock Wizard aplicado y divisor de la UART recalculado</li>
+            <li class="ok">Camino crítico identificado antes y después</li>
+            <li class="ok">Skew: un solo reloj global, despreciable</li>
+            <li class="ok">Frecuencia máxima post-síntesis y WNS ≥ 0 a 85 MHz</li>
+            <li class="ok">Clock Wizard aplicado y divisor de la UART recalculado (46)</li>
+            <li class="ok">Los 28 programas pasan en la placa a 85 MHz</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>IP clk_wiz</li>
-            <li>docs/timing.md</li>
+            <li>IP clk_wiz_cpu</li>
+            <li>synth/measure.tcl y reportes</li>
+            <li>docs/timing.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
             <li>¿Cuál es el camino crítico y por qué?</li>
             <li>¿Genera skew? ¿Con qué consecuencias?</li>
+            <li>¿Por qué no se limpian los datos en una burbuja?</li>
           </ul></div>
         </div>
       </div>
@@ -438,42 +446,45 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
     <article class="phase">
       <div class="num">11</div>
       <div class="body">
-        <div class="title"><h3>Mejora: saltos en ID</h3><span class="pill">semana 5 · si hay tiempo</span></div>
-        <p class="goal">Pasar la decisión de salto a ID, como enseña la cátedra, y medir con el contador de ciclos cuánto se gana con los mismos programas.</p>
+        <div class="title"><h3>Mejora: saltos en ID</h3><span class="pill">evaluada y descartada</span></div>
+        <p class="goal">Se estimó con el modelo de referencia sobre los 28 programas: −7,8 % de ciclos, pero con stalls nuevos, forwarding hacia ID y un camino más largo hasta el PC. Una pérdida de frecuencia del 8 % anula la ganancia: los saltos quedan en EX.</p>
         <div class="cols">
-          <div><h4>Demuestra</h4><ul class="chk">
-            <li>Comparador y sumador en ID</li>
-            <li>Forwarding hacia ID y stalls nuevos</li>
-            <li>Ciclos antes y después con el mismo programa</li>
+          <div><h4>Evaluación</h4><ul class="chk">
+            <li class="ok">Ciclos estimados en EX y en ID para cada programa</li>
+            <li class="ok">Stalls nuevos: +1 tras una instrucción de ALU, +2 tras un load</li>
+            <li>No implementada</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>Cambios en id_stage, hazard_unit, if_stage</li>
+            <li>docs/timing.html (sección sobre saltos en ID)</li>
+            <li>Informe, sección 10.6</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>¿Mejoró el tiempo total o solo los ciclos? (puede bajar la frecuencia)</li>
+            <li>¿Mejoraría el tiempo total o solo los ciclos?</li>
           </ul></div>
         </div>
       </div>
     </article>
 
-    <article class="phase">
+    <article class="phase cur">
       <div class="num">12</div>
       <div class="body">
-        <div class="title"><h3>Informe y defensa</h3><span class="pill">semana 5</span></div>
+        <div class="title"><h3>Informe y defensa</h3><span class="pill now">en curso</span></div>
         <p class="goal">Juntar lo que se fue documentando en cada fase y ensayar la demostración en la placa.</p>
         <div class="cols">
           <div><h4>Tareas</h4><ul class="chk">
-            <li>Respuestas a todas las preguntas del enunciado</li>
-            <li>Decisiones de diseño con su porqué</li>
-            <li>Diagramas actualizados</li>
-            <li>Guion de la demo</li>
+            <li class="ok">Respuestas a todas las preguntas del enunciado</li>
+            <li class="ok">Decisiones de diseño con su porqué</li>
+            <li class="ok">Una página por etapa, Debug Unit y timing</li>
+            <li>Capturas de los recuadros amarillos del informe y foto de la placa</li>
+            <li>Datos de la portada</li>
+            <li>Guion de la demo y práctica de preguntas</li>
           </ul></div>
           <div><h4>Archivos</h4><ul class="files">
-            <li>docs/informe</li>
-            <li>README.md</li>
+            <li>docs/informe/Informe_TP_Final.docx</li>
+            <li>docs/*.html</li>
           </ul></div>
           <div><h4>Para la defensa</h4><ul class="q">
-            <li>Repasar la columna "Para la defensa" de todas las fases</li>
+            <li>Repasar la columna «Para la defensa» de todas las fases y las preguntas de cada página</li>
           </ul></div>
         </div>
       </div>
@@ -487,36 +498,38 @@ td.f { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
   <p>Se separa lo que es procesador, lo que es depuración y lo que corre en la PC. La UART del TP2 queda en su propia carpeta para que se vea qué se reutilizó.</p>
 <pre class="tree">TPFINAL/
 ├── rtl/
-│   ├── cpu/      <span class="c">etapas, latches, ALU, control, hazard, forwarding</span>
+│   ├── cpu/      <span class="c">etapas, latches, ALU, control, hazard, forwarding, cpu_top</span>
 │   ├── uart/     <span class="c">uart_rx, uart_tx, baud_rate_gen (del TP2)</span>
 │   ├── debug/    <span class="c">debug_unit</span>
-│   └── top.v     <span class="c">top de la Basys3</span>
-├── tb/           <span class="c">un testbench por módulo y por etapa</span>
+│   ├── top/      <span class="c">top.v (Clock Wizard) y top_core.v (UART + Debug Unit + CPU)</span>
+│   └── board/    <span class="c">prueba temprana en la placa, display, antirrebote</span>
+├── tb/           <span class="c">un testbench por módulo, por etapa y del sistema</span>
 ├── coe/          <span class="c">contenido inicial de las BRAM</span>
-├── programs/     <span class="c">programas de prueba en assembler (.s)</span>
-├── sw/           <span class="c">ensamblador e interfaz en Python</span>
+├── programs/     <span class="c">programas de prueba (.s) y resultados esperados</span>
+├── sw/           <span class="c">ensamblador, ISS, generador aleatorio, CLI y GUI en Python</span>
 ├── constraints/  <span class="c">pines de la Basys3</span>
-├── docs/         <span class="c">diagrama, este plan, tabla de control, protocolo, informe</span>
-├── scripts/      <span class="c">sim.sh para simular desde la terminal</span>
+├── docs/         <span class="c">páginas de cada etapa, timing, este plan, informe</span>
+├── scripts/      <span class="c">sim.sh, run_programs.sh, svg_a_png.sh</span>
+├── synth/        <span class="c">medición de timing y reportes</span>
 ├── legacy/tp2/   <span class="c">lo del TP2 que no se usa (no se borra)</span>
 └── project_final/ <span class="c">proyecto Vivado</span></pre>
 </section>
 
 <section>
   <h2>Preguntas del enunciado</h2>
-  <p>Todas las preguntas que el enunciado pide responder, con la fase donde se resuelven. Algunas ya tienen respuesta gracias a lo que dijo el profesor.</p>
+  <p>Todas las preguntas que el enunciado pide responder, con la fase donde se resuelven. Todas quedaron respondidas y medidas.</p>
   <div class="tbl">
   <table>
     <thead><tr><th>Pregunta</th><th>Respuesta corta</th><th>Fase</th></tr></thead>
     <tbody>
-      <tr><td>¿Es necesario vaciar la memoria de datos?</td><td>No (lo confirmó el profesor). Arranca con 0, 1, 2… desde el .coe.</td><td class="f">4 · 8</td></tr>
+      <tr><td>¿Es necesario vaciar la memoria de datos?</td><td>No. Arranca con 0, 1, 2… desde el .coe y conserva lo escrito entre programas (se vio en la placa).</td><td class="f">4 · 8</td></tr>
       <tr><td>¿Y los registros?</td><td>Sí: el reset los pone en 0.</td><td class="f">2 · 8</td></tr>
-      <tr><td>¿Se necesita vaciar el pipeline?</td><td>Sí: el reset deja los latches en 0, o sea, solo burbujas.</td><td class="f">8</td></tr>
+      <tr><td>¿Se necesita vaciar el pipeline?</td><td>El reset deja los latches en 0. Al terminar queda vacío solo: el CPU se detiene cuando el ebreak llega a WB.</td><td class="f">8</td></tr>
       <tr><td>¿Y la memoria de programa?</td><td>No: se sobrescribe y el programa nuevo termina en HALT.</td><td class="f">8</td></tr>
-      <tr><td>¿Qué pasa si no hay instrucción de parada?</td><td>El PC sigue con los restos de memoria, da la vuelta y el programa no termina nunca.</td><td class="f">8</td></tr>
-      <tr><td>¿Cuál es el camino crítico?</td><td>A medir. Candidato: forwarding → ALU → decisión de salto → mux del PC → registro PC.</td><td class="f">10</td></tr>
-      <tr><td>¿Genera skew? ¿Consecuencias?</td><td>A medir con los reportes de Vivado.</td><td class="f">10</td></tr>
-      <tr><td>¿Frecuencia óptima?</td><td>A medir: la mayor con WNS ≥ 0.</td><td class="f">10</td></tr>
+      <tr><td>¿Qué pasa si no hay instrucción de parada?</td><td>El PC sigue con los restos de memoria, da la vuelta y no termina nunca. En la placa se detiene con Pausa.</td><td class="f">8</td></tr>
+      <tr><td>¿Cuál es el camino crítico?</td><td>Antes: load → forwarding → resta de la ALU → salto → flush de ID/EX. Ahora: load → forwarding → ALU (slt) → EX/MEM.</td><td class="f">10</td></tr>
+      <tr><td>¿Genera skew? ¿Consecuencias?</td><td>Un solo reloj por la red global: −0,011 ns en el camino crítico, despreciable.</td><td class="f">10</td></tr>
+      <tr><td>¿Frecuencia óptima?</td><td>90,5 MHz post-síntesis; la placa usa 85 MHz (WNS +0,59 ns).</td><td class="f">10</td></tr>
     </tbody>
   </table>
   </div>

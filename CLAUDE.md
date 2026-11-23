@@ -1,9 +1,12 @@
 # TP Final — Procesador RISC-V segmentado (Arquitectura de Computadoras 2026, UNC FCEFyN)
 
 Este archivo es el contexto del proyecto para Claude Code: se carga solo al abrir
-esta carpeta. Lo armó Guillermo, al pasarle el proyecto a Nicolás (12/11/2026),
-con todo lo que se decidió y construyó hasta la etapa ID. **Nicolás sigue con la
-etapa EX (Fase 3).**
+esta carpeta. Lo armó Guillermo el 12/11/2026, al pasarle el proyecto a Nicolás
+hasta la etapa ID, y se actualizó el 23/11/2026 con el estado final.
+
+**Estado:** el procesador, la Debug Unit y la interfaz están terminados. Están
+verificados en simulación y en la placa a 85 MHz. Falta cerrar el informe (capturas y
+portada) y preparar la defensa.
 
 ## Cómo trabajar (reglas del equipo)
 
@@ -12,48 +15,61 @@ etapa EX (Fase 3).**
   entender todo; no tirar código grande sin explicarlo.
 - **Seguir la teoría de la cátedra** (`TEORICO/`, ver abajo). Cuando nos apartamos,
   está anotado en "Decisiones" con el motivo.
-- **Etapa por etapa**: cada módulo tiene su testbench autoverificable antes de
-  integrar. Las entradas que vienen de otras etapas se manejan a mano en el TB.
+- **Cada módulo tiene su testbench autoverificable.** Si se cambia algo, correr la
+  regresión completa (ver "Verificar") antes de dar el cambio por bueno.
 - **Preguntar antes de decisiones de diseño grandes.** Primero se propone (tabla o
   esquema) y se aprueba; después se escribe el código.
 - **No tocar** los archivos del TP1 que están en la raíz (`README.md`, `TP_1_ALU.*`)
-  ni `legacy/`.
+  ni `legacy/`. Tampoco commitear `TP_1_ALU.srcs/.../uart_top.dcp`: Vivado lo
+  modifica solo.
 - **Informe Word** (`docs/informe/Informe_TP_Final.docx`): **nunca regenerarlo
   desde cero**, porque tiene capturas pegadas a mano. Solo se agregan secciones o
-  se edita en el lugar. Lo edita una sola persona a la vez (coordinar con
-  Guillermo). Lo más simple: escribir la sección 6.3 (EX) aparte y pasársela.
-- **Git:** todavía no hay repo. Si se crea uno para trabajar de a dos, hacerlo de
-  común acuerdo (no hacer push sin preguntar).
+  se edita en el lugar, y antes se hace un backup. Lo edita una sola persona a la vez.
+- **Git:** repo privado `guille19855/tp-final-riscv`, rama `main`. Commit y push solo
+  cuando se pide. Los PDFs no se suben (`*.pdf` está en el `.gitignore`).
 
 ## Herramientas
 
-- **Placa:** Basys3, `xc7a35tcpg236-1`, clock 100 MHz.
-- **Vivado 2022.2.** Hace falta *esta* versión, por el IP de la BRAM. El proyecto
-  es `project_final/project_final.xpr`.
+- **Placa:** Basys3, `xc7a35tcpg236-1`, oscilador de 100 MHz. El diseño corre a
+  **85 MHz** generados con el Clock Wizard.
+- **Vivado 2022.2.** Hace falta *esta* versión, por los IP. El proyecto es
+  `project_final/project_final.xpr`.
   - Las rutas son relativas (`$PPRDIR/../rtl/...`).
   - Los fuentes viven en `rtl/` y `tb/`. Se agregan con **Add Sources sin "Copy
-    sources into project"**: diseño desde `rtl/`, testbenches como *simulation
-    sources* desde `tb/`.
+    sources into project"**.
+  - Top de síntesis: **`top`** (`rtl/top/top.v`). Constraints: solo
+    `constraints/basys3_top.xdc` habilitado.
+  - IP: `instr_mem`, `data_mem` (BRAM) y `clk_wiz_cpu` (85 MHz). `clk_wiz_50` es
+    el viejo y ya no está en el proyecto.
 - **Simular desde la terminal:** `scripts/sim.sh <nombre_tb> [--wave]`.
-  - Compila todo `rtl/**/*.v`, los modelos del IP y el TB con xvlog/xelab/xsim, y
-    deja la salida en `sim_out/`.
+  - Compila todo `rtl/**/*.v`, los modelos de los IP y el TB con
+    xvlog/xelab/xsim, y deja la salida en `sim_out/`.
   - Si Vivado no está en `/c/Xilinx/Vivado/2022.2`, exportar `VIVADO=<ruta>`.
   - `launch_simulation` en modo batch falla; por eso existe el script.
-  - Para que encuentre los modelos del IP, primero hay que hacer *Generate Output
-    Products* del IP `instr_mem` en Vivado.
-- **En la GUI de Vivado**, el runtime por defecto es 1000 ns: usar `run all` o
-  poner `xsim.simulate.runtime` en `-all`.
-- **Si la simulación de la GUI falla con "simulate.log está siendo utilizado por
-  otro proceso"**, quedó un `vivado.exe` fantasma en segundo plano. Hay que
-  terminarlo desde el Administrador de tareas → Detalles.
+  - Para encontrar los modelos de los IP, antes hay que hacer *Generate Output
+    Products* en Vivado.
+- **Regresión de programas:** `scripts/run_programs.sh`, que usa `cpu_top_tb`, y
+  `TB=top_core_tb scripts/run_programs.sh`, que pasa por UART y la Debug Unit y
+  tarda unos 6 minutos.
+- **En la GUI de Vivado:** el runtime por defecto es 1000 ns, así que usar `run all`.
+  Si la simulación falla con "simulate.log está siendo utilizado por otro proceso",
+  quedó un `vivado.exe` fantasma: terminarlo desde el Administrador de tareas.
 - **Convención de TB:** entradas en el flanco de bajada y chequeos 1 ns después del
   flanco de subida. Imprime `OK ...` o `ERROR ...` por chequeo y al final
   `TEST PASSED: N checks, 0 errors`.
+- **Timing:** `synth/measure.tcl` (Vivado batch, out of context, reloj de 10 ns)
+  da la fmax post-síntesis y post-route. La fmax es 1 / (10 − WNS).
 - **`scripts/svg_a_png.sh <pagina.html> <clase-svg> <salida.png>`:** renderiza un
-  SVG de las páginas `docs/*.html` a PNG para el informe. Usa Edge headless.
+  SVG de `docs/*.html` a PNG para el informe. Usa Edge headless.
+- **Python** (`pip install pyserial`):
+  - `python sw/asm.py prog.s` → .hex, .bin y .lst.
+  - `python sw/iss.py prog.s` → resultados esperados: .exp, .trc y .sto.
+  - `python sw/debug_cli.py puertos | -p COMx cargar|correr|paso|volcado|reset|programa|verificar`.
+  - `python sw/debug_gui.py` → interfaz gráfica.
+  - `verificar` corre todos los programas en la placa contra el ISS. Supone la
+    memoria de datos recién programada: hacer *Program Device* antes.
 
-> **PDFs:** el enunciado y `TEORICO/` NO están en el repo (`*.pdf` está en el
-> `.gitignore`). Pedírselos a Guillermo y copiarlos en la raíz y en `TEORICO/`.
+> **PDFs:** el enunciado y `TEORICO/` NO están en el repo. Pedírselos a Guillermo.
 
 ## Enunciado (resumen; está completo en `ENUNCIADO TRABAJO FINAL 2026.pdf`)
 
@@ -67,216 +83,116 @@ etapa EX (Fase 3).**
   - U: `lui`
   - J: `jal`
   - más HALT.
-- **Debug Unit por UART:** envía los 32 registros, los latches intermedios, la
-  memoria de datos usada y el PC.
-  - Carga el programa por UART, sin resintetizar.
-  - Modo continuo (hasta HALT) y modo paso a paso.
-  - Al terminar, el pipeline tiene que quedar vacío.
-- **Clock:** "no se debe intervenir el clock". Nada de clock gating: el modo paso
-  a paso se hace con *clock enable* (`en`).
-- **Timing:** análisis de timing (camino crítico, frecuencia máxima); se sugiere
-  el Clock Wizard.
+- **Debug Unit por UART:**
+  - envía los 32 registros, los latches intermedios, la memoria de datos usada y el PC;
+  - carga el programa sin resintetizar;
+  - tiene modo continuo y paso a paso;
+  - al terminar, el pipeline tiene que quedar vacío.
+- **Clock:** "no se debe intervenir el clock". Nada de clock gating: el paso a paso
+  se hace con *clock enable* (`en`).
+- **Timing:** análisis de timing (camino crítico, frecuencia máxima). Se sugiere el
+  Clock Wizard.
 - **PC:** ensamblador propio e interfaz en Python (el profesor aprobó Python).
 - **Indicaciones del profesor:**
-  - No hace falta borrar las memorias al reprogramar.
-  - La memoria de datos se inicializa con 0..255 (`.coe`).
-  - Todos los FF resetean a 0.
-  - La frecuencia máxima se saca de post-síntesis.
-  - Ojo con la lógica combinacional larga entre FF.
+  - no hace falta borrar las memorias al reprogramar;
+  - la memoria de datos se inicializa con 0..255 (`.coe`);
+  - todos los FF resetean a 0;
+  - la frecuencia máxima se saca de post-síntesis;
+  - ojo con la lógica combinacional larga entre FF.
 
 ## Decisiones de diseño (ya tomadas, no rediscutir sin motivo)
 
-1. **Saltos:** se resuelven en **EX** con *predict not-taken*. Si se toma el salto,
-   se hace flush de IF/ID e ID/EX (penalidad de 2 ciclos). Moverlos a ID (Opción II
-   de la cátedra, 1 ciclo) es una mejora opcional para el final (Fase 11).
-2. **Banco de registros:** en flip-flops, con **bypass interno** (si WB escribe el
-   mismo registro que ID lee, sale el dato nuevo). La cátedra escribe en el flanco
-   de bajada; elegimos el bypass porque no parte el período a la mitad y no limita
-   la frecuencia.
-3. **HALT = `ebreak`** (`0x00100073`). Se detecta en ID: IF deja de buscar y el
-   `ebreak` viaja hasta WB. Cuando llega a WB, el pipeline está vacío y el programa
-   terminó.
-4. **Memorias:** BRAM con el IP *Block Memory Generator*, True Dual Port, 1024×32.
-   - El puerto A es del CPU y el puerto B de la Debug Unit.
-   - La lectura es sincrónica (latencia 1).
-   - La memoria de instrucciones se direcciona con el registro PC, y su salida
-     ES el `IF/ID.instr`.
-   - La memoria de datos (**todavía no creada**, Fase 4) se va a direccionar
-     desde EX/MEM, y su salida va a hacer de `MEM/WB.read_data`. Lleva escritura
-     por byte para `sb`/`sh` y se inicializa con 0..255.
-5. **UART:** 115200 baudios. Es la del TP2 (`rtl/uart/`), con DVSR parametrizado
-   según el clock.
-6. **Reset sincrónico** en todo, que lleva todo a 0. `en = 0` congela todo el
-   procesador, incluida la escritura del banco de registros.
+1. **Saltos en EX** con *predict not-taken*: un salto tomado hace flush de IF/ID e
+   ID/EX (2 ciclos). `beq`/`bne` usan un **comparador de igualdad propio** sobre los
+   operandos forwardeados, no la ALU (Fase 10).
+   - **Saltos en ID (Fase 11): evaluado y descartado.** Da −7,8 % de ciclos, pero
+     suma stalls y alarga el camino crítico (informe 10.6, `docs/timing.html`).
+2. **Banco de registros en FF con bypass interno.** La cátedra escribe en el flanco
+   de bajada; el bypass no parte el período a la mitad.
+3. **HALT = `ebreak`** (`0x00100073`). Se detecta en ID e IF deja de buscar. Cuando
+   llega a WB (`program_done`), la Debug Unit baja `cpu_en` en ese mismo ciclo, así
+   que el pipeline queda vacío.
+4. **Memorias:** BRAM con el IP, True Dual Port, 1024×32, lectura sincrónica.
+   - El puerto A es del CPU y el B de la Debug Unit.
+   - La salida de `instr_mem` ES `IF/ID.instr`.
+   - La salida de `data_mem` ES `MEM/WB.read_data`. Lleva escritura por byte y se
+     inicializa con palabra i = i.
+   - La memoria de datos **no se borra** entre programas.
+5. **UART** del TP2 a 115200 baudios. `DVSR = 46` a 85 MHz (lo calcula `top.v`).
+6. **Reset sincrónico** que lleva todo a 0, y `en = 0` congela todo.
+   - Una **burbuja** solo pone en 0 el control con efecto y rs1/rs2/rd (Fase 10).
+   - Excepción al reset a 0: el sincronizador de rx arranca en 1.
+7. **jal/jalr:** PC+4 se elige en EX, así `ex_mem_result` es siempre lo que se
+   escribe en rd y WB tiene un mux de 2 entradas.
+8. **Debug Unit:**
+   - comandos de 1 byte: L, R, C, S, D, I;
+   - después de cada paso manda el volcado completo;
+   - la memoria usada se lleva con un mapa de bits en hardware (`dmem_used.v`);
+   - los latches se leen con un mux de 16 palabras en `cpu_top`.
 
-## Estado (12/11/2026)
+## Estado (23/11/2026)
 
 | Fase | Qué | Estado |
 |---|---|---|
-| 0 | Preparación (carpetas, `riscv_defs.vh`, `sim.sh`) | ✅ |
-| 1 | IF: `if_stage.v` + IP `instr_mem` | ✅ 26/26 |
-| 2 | ID: `control_unit`, `imm_gen`, `reg_file`, `hazard_unit`, `id_stage` | ✅ 37 + 1021 + 300 + 17 + 70 |
-| **3** | **EX: ALU, control de ALU, forwarding, decisión de salto, latch EX/MEM** | **← sigue (Nicolás)** |
-| 4 | MEM: IP `data_mem` (escritura por byte, `.coe` 0..255), loads con extensión de signo | |
-| 5 | WB: mux de escritura (ALU / MEM / PC+4) | |
-| 6 | Ensamblador en Python (`sw/asm.py`) | |
-| 7 | Integración `cpu_top.v` + programas de prueba en `programs/` | |
-| 8 | Debug Unit + `top.v` en la placa | |
-| 9 | Interfaz Python | |
-| 10 | Timing / Clock Wizard | |
-| 11 | Saltos en ID (opcional) | |
-| 12 | Informe y defensa | |
+| 0–2 | Preparación, IF, ID | ✅ |
+| 3–5 | EX, MEM, WB | ✅ |
+| 6 | Ensamblador + ISS + programas aleatorios | ✅ |
+| 7 | Integración `cpu_top` | ✅ 28 programas |
+| 8 | Debug Unit + `top` en la placa | ✅ 28/28 en la placa |
+| 9 | Interfaz Python (CLI + GUI tkinter) | ✅ |
+| 10 | Timing | ✅ fmax post-síntesis 64,9 → 90,5 MHz; placa a 85 MHz (WNS +0,59) |
+| 11 | Saltos en ID | evaluada y descartada |
+| **12** | **Informe y defensa** | **← falta: 22 capturas en los recuadros amarillos, portada, ensayo** |
 
-**Páginas de referencia** (publicadas por Guillermo; pedirle acceso si no abren):
-- Diagrama general del pipeline: https://claude.ai/artifact/H2i71GegeujE758ojuauvS
-  (`docs/pipeline_diagrama.html`)
-- Plan de trabajo: https://claude.ai/artifact/ByEfhFGYdYCN64kAsE8jFR
-  (`docs/plan_de_trabajo.html`)
-- Tabla de control: https://claude.ai/artifact/AAPc4BgSib1JkagGoa1mwy
-  (`docs/tabla_control.html`)
-- Etapa IF: https://claude.ai/artifact/P9wfwUZrhmqCotAACqea7Q (`docs/etapa_if.html`)
-- Etapa ID: https://claude.ai/artifact/CyWiMmMAzCLxCm4MQntavG (`docs/etapa_id.html`)
+**Páginas de referencia** (publicadas; pedir acceso a Guillermo si no abren):
 
-Hay una página `docs/etapa_<x>.html` por cada etapa terminada, con el esquemático,
-los fragmentos de Verilog, la síntesis y las preguntas para la defensa. Hacer
-`docs/etapa_ex.html` igual cuando EX esté lista.
+| Página | Link | Archivo |
+|---|---|---|
+| Diagrama general | https://claude.ai/artifact/H2i71GegeujE758ojuauvS | `docs/pipeline_diagrama.html` |
+| Plan de trabajo | https://claude.ai/artifact/ByEfhFGYdYCN64kAsE8jFR | `docs/plan_de_trabajo.html` |
+| Tabla de control | https://claude.ai/artifact/AAPc4BgSib1JkagGoa1mwy | `docs/tabla_control.html` |
+| Etapa IF | https://claude.ai/artifact/P9wfwUZrhmqCotAACqea7Q | `docs/etapa_if.html` |
+| Etapa ID | https://claude.ai/artifact/CyWiMmMAzCLxCm4MQntavG | `docs/etapa_id.html` |
+| Etapa EX | (sin publicar) | `docs/etapa_ex.html` |
+| Etapa MEM | https://claude.ai/artifact/13TXxcVWpBKbMjvu2pdxwu | `docs/etapa_mem.html` |
+| Etapa WB | https://claude.ai/artifact/67AmpLGntTA6G1L46oQ77y | `docs/etapa_wb.html` |
+| Debug Unit | https://claude.ai/artifact/9b3TMJPdz5rmWFsL6V3zG3 | `docs/debug_unit.html` |
+| Timing | https://claude.ai/artifact/5ysWcrpUvXZFGN9y63fX3c | `docs/timing.html` |
+
+Cada página tiene su sección "Preguntas para la defensa".
 
 ## Estructura
 
 ```
-rtl/cpu/riscv_defs.vh   opcodes, funct3 y codificación del control (`include en todo)
-rtl/cpu/if_stage.v      PC + BRAM de instrucciones + latch IF/ID
-rtl/cpu/control_unit.v  decodifica el opcode -> señales de control
-rtl/cpu/imm_gen.v       inmediatos I/S/B/U/J extendidos en signo
-rtl/cpu/reg_file.v      32x32 en FF, x0=0, bypass, puerto de debug
-rtl/cpu/hazard_unit.v   load-use -> stall, flush_id_ex
-rtl/cpu/id_stage.v      todo lo anterior + latch ID/EX
-rtl/uart/               UART del TP2 (rx, tx, baud_rate_gen)
-tb/cpu/, tb/uart/       testbenches (<modulo>_tb.v)
-coe/instr_test.coe      contenido inicial de instr_mem (palabra i = C0DE0000+i)
-constraints/            .xdc de la Basys3
-docs/                   páginas HTML de cada etapa, plan, informe/
-TEORICO/                PDFs de la cátedra
-scripts/                sim.sh, svg_a_png.sh
-programs/, sw/          (vacíos: assembler y programas de prueba)
-legacy/tp2/             TP2 viejo, no se usa (tiene un alu.v de 8 bits, NO confundir)
+rtl/cpu/      riscv_defs.vh, if/id/ex/mem/wb_stage.v (cada uno con su latch de salida),
+              control_unit, imm_gen, reg_file, hazard_unit, alu, alu_control,
+              forwarding_unit, dmem_used, cpu_top.v (integración + puertos de debug)
+rtl/debug/    debug_unit.v (FSM del protocolo)
+rtl/top/      top.v (Clock Wizard) · top_core.v (UART + Debug Unit + CPU + display)
+rtl/board/    prueba temprana en la placa (sin Debug Unit), seven_seg, debouncer
+rtl/uart/     UART del TP2 (rx, tx, baud_rate_gen)
+tb/cpu, tb/top, tb/board, tb/uart   testbenches (<modulo>_tb.v)
+programs/     programas de prueba (.s + .hex/.exp/.trc/.sto); random/ se regenera
+sw/           asm.py, iss.py, gen_random.py, du_protocol.py, debug_cli.py,
+              debug_gui.py, gui_model.py, test_*.py
+coe/          contenido inicial de las BRAM
+constraints/  basys3_top.xdc (el que va), basys3_board_test.xdc
+synth/        measure.tcl + reportes del camino crítico (antes/después)
+docs/         páginas HTML, informe/ (Word + img/)
+scripts/      sim.sh, run_programs.sh, svg_a_png.sh
+legacy/tp2/   TP2 viejo, no se usa (tiene un alu.v de 8 bits, NO confundir)
 ```
 
-Para leer los PDFs de `TEORICO/`, que son casi todos imágenes, hay que extraer el
-texto con Python `fitz` (PyMuPDF).
-- **"Apuntes de Arquitectura de Computadoras.pdf"** es lo más importante. La
-  Unidad 2 (Segmentación, pp. ~50-75) cubre el pipeline. Está en MIPS: traducir rt
-  como rs2/rd, sin RegDst, target = PC+imm.
-- **"3. Processor.pdf"** son las diapositivas RISC-V: datapath, ALUOp, ecuaciones
-  de forwarding (pp. 10-11 tienen el control de 2 niveles) y load-use.
+Para leer los PDFs de `TEORICO/` hay que extraer el texto con PyMuPDF.
+- **"Apuntes de Arquitectura de Computadoras.pdf"**, Unidad 2 (pp. ~50-75): pipeline,
+  en MIPS.
+- **"3. Processor.pdf"**: datapath RISC-V, ALUOp, forwarding y load-use.
 
-## Lo que EX recibe de ID (ya implementado en `id_stage.v`)
+## Verificar (antes de dar por bueno cualquier cambio)
 
-**Latch ID/EX** (todos registros; 0 cuando hay burbuja o reset):
-
-| Señal | Bits | Uso en EX |
-|---|---|---|
-| `id_ex_pc` | 32 | target de branch/jal = `pc + imm` |
-| `id_ex_pc4` | 32 | valor que escriben `jal`/`jalr` en rd |
-| `id_ex_rs1_data`, `id_ex_rs2_data` | 32 c/u | operandos del banco (antes del forwarding) |
-| `id_ex_imm` | 32 | inmediato ya extendido |
-| `id_ex_rs1`, `id_ex_rs2` | 5 c/u | para el forwarding. **Valen 0 si la instrucción no los usa** |
-| `id_ex_rd` | 5 | **vale 0 si la instrucción no escribe registro** |
-| `id_ex_funct3` | 3 | operación de la ALU, tipo de branch, ancho de load/store |
-| `id_ex_funct7b5` | 1 | `instr[30]`: add/sub, srl/sra |
-| `id_ex_alu_src_a` | 1 | 0 = rs1, 1 = **cero** (solo `lui`: 0 + imm) |
-| `id_ex_alu_src_b` | 1 | 0 = rs2, 1 = imm |
-| `id_ex_alu_op` | 2 | `ALUOP_ADD` 00 (ld/st/jalr/lui), `SUB` 01 (branch), `R` 10, `I` 11 |
-| `id_ex_branch`, `id_ex_jal`, `id_ex_jalr` | 1 c/u | tipo de salto |
-| `id_ex_mem_read`, `id_ex_mem_write` | 1 c/u | pasan a MEM |
-| `id_ex_reg_write`, `id_ex_wb_sel` | 1 + 2 | pasan a WB (`WB_ALU` 00, `WB_MEM` 01, `WB_PC4` 10) |
-| `id_ex_halt` | 1 | el `ebreak` viaja hasta WB |
-
-**Señales que EX le tiene que dar a IF e ID:**
-- `branch_taken` va a `if_stage.branch_taken` y a `id_stage.branch_taken`:
-  - en IF hace flush de IF/ID y carga el PC;
-  - en ID convierte el latch ID/EX en burbuja y anula un `ebreak` del camino
-    equivocado.
-- `branch_target[31:0]` va a `if_stage.branch_target`.
-
-Ya está resuelto en ID: el stall por load-use, la burbuja y la detección de HALT.
-EX no tiene que hacer flush de nada propio: la instrucción que salta es la que está
-en EX y sigue su camino.
-
-## Fase 3 — EX: lo que está pensado (a confirmar con el equipo)
-
-Módulos sugeridos, cada uno con su TB: `rtl/cpu/alu.v`, `rtl/cpu/alu_control.v`,
-`rtl/cpu/forwarding_unit.v` y `rtl/cpu/ex_stage.v` (este último incluye el latch
-EX/MEM).
-
-**Control de la ALU (segundo nivel, diapositivas 10-11 de "3. Processor").**
-La operación interna es `{bit30, funct3}`:
-
-| Op | Código | Op | Código |
-|---|---|---|---|
-| ADD | 0000 | SRL | 0101 |
-| SUB | 1000 | SRA | 1101 |
-| SLL | 0001 | OR | 0110 |
-| SLT | 0010 | AND | 0111 |
-| SLTU | 0011 | XOR | 0100 |
-
-- ALUOp 00 → ADD; 01 → SUB.
-- ALUOp 10 (R) → `{funct7b5, funct3}`.
-- ALUOp 11 (I) → `{(funct3==101) ? funct7b5 : 0, funct3}`.
-
-  **Trampa:** en tipo I, `instr[30]` es parte del inmediato. Un `addi` con
-  inmediato negativo tiene el bit 30 en 1 y NO tiene que hacerse `sub`. El bit 30
-  solo cuenta en `srli`/`srai`. Probarlo en el TB.
-
-**ALU (32 bits, combinacional):**
-- Los shifts usan `b[4:0]`.
-- SLT compara con signo (`$signed`); SLTU, sin signo.
-- `zero = (result == 0)` sirve para los branches, que usan SUB.
-
-**Forwarding (ecuaciones de la cátedra):**
-```
-ForwardA = 10  si EX/MEM.reg_write && EX/MEM.rd != 0 && EX/MEM.rd == ID/EX.rs1
-         = 01  si no, y MEM/WB.reg_write && MEM/WB.rd != 0 && MEM/WB.rd == ID/EX.rs1
-         = 00  si no (dato del banco)
-ForwardB: igual con rs2
-```
-- EX/MEM tiene prioridad porque es el dato más reciente.
-- La distancia 3 (WB→ID) ya la cubre el bypass del banco.
-- Como `rs1`/`rs2`/`rd` llegan "limpios" (0 si no se usan), no aparecen
-  dependencias falsas.
-
-**Detalles a tener en cuenta:**
-- **El mux de forwarding va ANTES del mux ALUSrcB.** El dato de un `sw` (rs2) tiene
-  que salir forwardeado aunque la ALU use el inmediato. A EX/MEM se pasa el rs2
-  *forwardeado* como dato de escritura.
-- **Valor forwardeado desde EX/MEM** si la instrucción de adelante es `jal`/`jalr`:
-  lo que escribe en rd es PC+4, no el resultado de la ALU. Decidir una de dos:
-  - guardar en EX/MEM un "resultado" ya multiplexado;
-  - forwardear según `wb_sel`.
-- **Un load en EX/MEM nunca se forwardea desde ahí**, porque el dato no existe
-  todavía. Ese caso ya lo frena el stall load-use de ID.
-- **Desde MEM/WB** se forwardea el valor final de WB, el mismo que va al banco.
-- **Decisión de salto:**
-  - `taken = (branch && (funct3==BEQ ? zero : ~zero)) || jal || jalr`.
-  - Target: `pc + imm` para branch/jal, con un sumador propio ("Add" del
-    datapath); `(rs1_fwd + imm) & ~1` para `jalr`.
-- **Latch EX/MEM:**
-  - Datos: `alu_result` (o resultado), `rs2` forwardeado, `rd`, `funct3`, `pc4`.
-  - Control: `mem_read`, `mem_write`, `reg_write`, `wb_sel`, `halt`.
-  - Mismo esquema que ID/EX: `reset` pone todo en 0, `en` copia y `en = 0`
-    congela.
-- **Timing:** el camino forwarding → ALU → decisión → mux del PC es candidato a
-  camino crítico (lo advirtió el profesor). Medirlo en la Fase 10.
-- **Para el TB de `ex_stage`:** manejar a mano las entradas ID/EX y las de
-  forwarding (EX/MEM, MEM/WB). Casos mínimos:
-  - las 10 operaciones;
-  - `addi` con imm negativo;
-  - `srai` vs `srli`;
-  - `lui`;
-  - forwarding A/B desde cada fuente y prioridad EX/MEM > MEM/WB;
-  - forwarding con rd = x0;
-  - `sw` con rs2 forwardeado;
-  - `beq`/`bne` tomados y no tomados;
-  - `jal`, y `jalr` con bit 0 en 1;
-  - burbuja;
-  - `en = 0`.
+1. Testbench del módulo tocado: `scripts/sim.sh <modulo>_tb`.
+2. `scripts/run_programs.sh` → "TODOS LOS PROGRAMAS PASARON".
+3. Si se tocó la Debug Unit o el top: `TB=top_core_tb scripts/run_programs.sh`.
+4. `python sw/test_asm.py` y `python sw/test_gui_model.py` si se tocó `sw/`.
+5. En la placa: Generate Bitstream → WNS ≥ 0 → Program Device →
+   `python sw/debug_cli.py -p COMx verificar "programs/*.s" "programs/random/*.s"`.
