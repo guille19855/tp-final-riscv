@@ -25,7 +25,8 @@ from tkinter import ttk, filedialog
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import asm  # noqa: E402
 import gui_model as gm  # noqa: E402
-from du_protocol import DebugUnit, DebugUnitError, ABI  # noqa: E402
+from du_protocol import DebugUnitError, ABI  # noqa: E402
+from sim_board import open_board  # noqa: E402
 
 FONT = ("Consolas", 10)
 STAGE_COLOR = {"IF": "#cfe8ff", "ID": "#d8f5d0", "EX": "#ffe9b8"}
@@ -161,11 +162,16 @@ class App:
             from serial.tools import list_ports
             ports = [p.device for p in list_ports.comports()]
         except ImportError:
+            self.log(f"Falta pyserial en este Python ({sys.executable}). "
+                     f"Instalarlo con: \"{sys.executable}\" -m pip install pyserial")
             ports = []
-            self.log("Falta pyserial: pip install pyserial")
-        self.port["values"] = ports
-        if ports and self.port.get() not in ports:
-            self.port.set(ports[0])
+        # "SIM" = placa simulada (sim_board.py): siempre esta, al final
+        self.port["values"] = ports + ["SIM"]
+        if self.port.get() not in ports + ["SIM"]:
+            self.port.set(ports[0] if ports else "SIM")
+        self.log(("Puertos: " + ", ".join(ports) + "." if ports else
+                  "No hay puertos serie (¿está conectada y encendida la placa? Después apretá ↻).")
+                 + " SIM = placa simulada, sin hardware.")
 
     def _toggle_conn(self):
         if self.du:
@@ -175,11 +181,15 @@ class App:
             self._set_buttons()
             return
         try:
-            self.du = DebugUnit(self.port.get())
+            self.du = open_board(self.port.get())     # "SIM" -> placa simulada
         except Exception as e:           # SerialException, puerto ocupado, etc.
             self.log(f"No se pudo abrir {self.port.get()}: {e}")
             return
-        self.log(f"Conectado a {self.port.get()}.")
+        if self.port.get() == "SIM":
+            self.log("Conectado a la PLACA SIMULADA (sim_board.py): el pipeline ciclo a "
+                     "ciclo en Python, arranca como recién programada la FPGA.")
+        else:
+            self.log(f"Conectado a {self.port.get()}.")
         self._dump()
 
     def _open(self):

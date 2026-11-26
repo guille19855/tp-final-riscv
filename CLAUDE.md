@@ -66,6 +66,9 @@ portada) y preparar la defensa.
   - `python sw/iss.py prog.s` → resultados esperados: .exp, .trc y .sto.
   - `python sw/debug_cli.py puertos | -p COMx cargar|correr|paso|volcado|reset|programa|verificar`.
   - `python sw/debug_gui.py` → interfaz gráfica.
+  - Puerto **`SIM`** (GUI y CLI) → placa simulada, sin hardware (`sw/sim_board.py`,
+    agregada el 26/11/2026). Es el pipeline ciclo a ciclo copiado del RTL. Si se
+    cambia el RTL, hay que actualizarla también y correr `python sw/test_sim_board.py`.
   - `verificar` corre todos los programas en la placa contra el ISS. Supone la
     memoria de datos recién programada: hacer *Program Device* antes.
 
@@ -193,6 +196,7 @@ Para leer los PDFs de `TEORICO/` hay que extraer el texto con PyMuPDF.
 1. Testbench del módulo tocado: `scripts/sim.sh <modulo>_tb`.
 2. `scripts/run_programs.sh` → "TODOS LOS PROGRAMAS PASARON".
 3. Si se tocó la Debug Unit o el top: `TB=top_core_tb scripts/run_programs.sh`.
-4. `python sw/test_asm.py` y `python sw/test_gui_model.py` si se tocó `sw/`.
+4. `python sw/test_asm.py`, `python sw/test_gui_model.py` y
+   `python sw/test_sim_board.py` si se tocó `sw/` (el último también si se tocó `rtl/cpu`).
 5. En la placa: Generate Bitstream → WNS ≥ 0 → Program Device →
    `python sw/debug_cli.py -p COMx verificar "programs/*.s" "programs/random/*.s"`.

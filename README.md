@@ -108,6 +108,21 @@ python sw/debug_cli.py -p COM3 verificar "programs/*.s" "programs/random/*.s"
 En la placa, el display muestra el PC. LED15 indica HALT, LED14 que está corriendo y
 LED13 que está cargando.
 
+### Sin la placa
+
+El puerto **`SIM`** es una placa simulada (`sw/sim_board.py`). Es el pipeline
+modelado ciclo a ciclo en Python, a partir del Verilog: tiene los mismos latches,
+forwarding, stalls, flush y HALT. Da los mismos ciclos y volcados que el hardware.
+`sw/test_sim_board.py` lo compara con el ISS en los 28 programas.
+
+```bash
+python sw/debug_gui.py                                  # elegir el puerto SIM
+python sw/debug_cli.py -p SIM verificar "programs/*.s" "programs/random/*.s"
+```
+
+Con la CLI, la placa simulada arranca de cero en cada comando. Para el paso a paso,
+usar la GUI.
+
 ### Programas
 
 ```bash

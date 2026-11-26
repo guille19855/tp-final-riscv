@@ -11,6 +11,12 @@ Uso (el puerto lo muestra "puertos"; en Windows es COMx):
     python sw/debug_cli.py -p COM5 programa
     python sw/debug_cli.py -p COM5 verificar programs/ejemplo programs/alu ...
 
+Con -p SIM se usa la placa simulada (sim_board.py, el pipeline ciclo a ciclo
+en Python), sin hardware. Ojo: la placa simulada vive solo mientras corre el
+comando, asi que no recuerda nada entre un comando y el siguiente (cargar y
+despues paso no sirve). Con la CLI sirve "verificar"; para el paso a paso sin
+placa, la interfaz grafica con el puerto SIM.
+
 "verificar" es la prueba automatica en la placa: por cada programa (tiene que
 existir el .hex) lo carga, relee el programa con 'I', lo corre en continuo y
 compara ciclos, los 32 registros y la memoria usada contra el ISS (sw/iss.py).
@@ -26,17 +32,23 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from du_protocol import DebugUnit, DebugUnitError, read_hex, ABI  # noqa: E402
+from du_protocol import DebugUnitError, read_hex, ABI  # noqa: E402
+from sim_board import open_board  # noqa: E402
 import iss  # noqa: E402
 
 
 def cmd_puertos(_args):
-    from serial.tools import list_ports
-    ports = list(list_ports.comports())
+    try:
+        from serial.tools import list_ports
+        ports = list(list_ports.comports())
+    except ImportError:
+        print("Falta pyserial (pip install pyserial): solo esta la placa simulada.")
+        ports = []
     if not ports:
         print("No hay puertos serie. Esta conectada la placa?")
     for p in ports:
         print(f"{p.device:8} {p.description}")
+    print(f"{'SIM':8} placa simulada (sw/sim_board.py), no necesita la placa")
 
 
 def verificar(du, base, dmem):
@@ -94,7 +106,12 @@ def main():
     if not args.port:
         ap.error("falta -p PUERTO (ver: python sw/debug_cli.py puertos)")
 
-    du = DebugUnit(args.port)
+    du = open_board(args.port)            # "SIM" -> placa simulada
+    sim = args.port.upper() == "SIM"
+    if sim and args.cmd != "verificar":
+        print("(placa simulada: arranca de cero en cada comando; para el paso a paso "
+              "usar la GUI con el puerto SIM)\n")
+    lugar = "EN LA PLACA SIMULADA" if sim else "EN LA PLACA"
     try:
         if args.cmd == "cargar":
             w = read_hex(args.hex)
@@ -130,7 +147,7 @@ def main():
                     print("    " + e)
                 fails += not ok
             print()
-            print("TODOS LOS PROGRAMAS PASARON EN LA PLACA" if fails == 0
+            print(f"TODOS LOS PROGRAMAS PASARON {lugar}" if fails == 0
                   else f"{fails} PROGRAMA(S) FALLARON")
             return 1 if fails else 0
     except DebugUnitError as e:
